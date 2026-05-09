@@ -4,7 +4,6 @@ import { dashboard } from '@/routes';
 import { ref, onMounted, watch } from 'vue';
 import { Chart, registerables } from 'chart.js';
 import draggable from 'vuedraggable';
-import { local } from '@/routes/storage';
 
 Chart.register(...registerables);
 
