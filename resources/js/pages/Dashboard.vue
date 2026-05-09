@@ -270,9 +270,7 @@ onMounted(() => {
             <template #item="{ element: section }">
 
                 <div v-if="section.id === 'stat-cards'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- ════════════════════════════════════════ -->
-                    <!-- SECTION 1: Stat Cards                   -->
-                    <!-- ════════════════════════════════════════ -->
+                    <!-- SECTION 1: Stat Cards -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -322,9 +320,7 @@ onMounted(() => {
                 </div>
 
                 <div v-else-if="section.id === 'collection-summary'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- ════════════════════════════════════════ -->
-                    <!-- SECTION 2: Collection Summary           -->
-                    <!-- ════════════════════════════════════════ -->
+                    <!-- SECTION 2: Collection Summary -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -375,9 +371,7 @@ onMounted(() => {
                 </div>
 
                 <div v-else-if="section.id === 'charts'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- ════════════════════════════════════════ -->
-                    <!-- SECTION 3: Charts                       -->
-                    <!-- ════════════════════════════════════════ -->
+                    <!-- SECTION 3: Charts -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -399,9 +393,7 @@ onMounted(() => {
                 </div>
 
                 <div v-else-if="section.id === 'top-overdue'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- ════════════════════════════════════════ -->
-                    <!-- SECTION 4: Top Overdue Table            -->
-                    <!-- ════════════════════════════════════════ -->
+                    <!-- SECTION 4: Top Overdue Table -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -453,9 +445,7 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
-
             </template>
         </draggable>
-
     </div>
 </template>
