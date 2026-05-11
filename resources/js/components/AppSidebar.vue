@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid } from 'lucide-vue-next';
+import { LayoutGrid, Users } from 'lucide-vue-next'; // ← add Users icon
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -14,6 +14,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import * as clientRoute from '@/routes/clients';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -22,8 +23,12 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Clients',
+        href: clientRoute.index(),
+        icon: Users,
+    },
 ];
-
 </script>
 
 <template>

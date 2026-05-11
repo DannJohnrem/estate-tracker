@@ -119,34 +119,6 @@ const statsCardSummary = ref([
     },
 ]);
 
-// Restore stat card order
-const savedCardOrder = localStorage.getItem('dashboardCardOrder');
-
-if (savedCardOrder) {
-    const order = JSON.parse(savedCardOrder) as string[];
-    statCards.value = order
-        .map(id => statCards.value.find(c => c.id === id))
-        .filter(Boolean) as typeof statCards.value;
-}
-
-const savedSummaryCardOrder = localStorage.getItem('dashboardSummaryCardOrder');
-
-if (savedSummaryCardOrder) {
-    const order = JSON.parse(savedSummaryCardOrder) as string[];
-    statsCardSummary.value = order
-        .map(id => statsCardSummary.value.find(c => c.id === id))
-        .filter(Boolean) as typeof statsCardSummary.value;
-}
-
-watch(statCards, (val) => {
-    localStorage.setItem('dashboardCardOrder', JSON.stringify(val.map(c => c.id)));
-}, { deep: true });
-
-watch(statsCardSummary, (val) => {
-    localStorage.setItem('dashboardSummaryCardOrder', JSON.stringify(val.map(c => c.id)));
-}, { deep: true });
-
-// Dashboard Sections — 4 sections lahat draggable, pero hindi yung mga cards sa loob
 const sections = ref([
     { id: 'stat-cards' },
     { id: 'collection-summary' },
@@ -154,19 +126,19 @@ const sections = ref([
     { id: 'top-overdue' },
 ]);
 
-const savedSectionOrder = localStorage.getItem('dashboardSectionOrder');
+const isReady = ref(false);
 
-if (savedSectionOrder) {
-    const order = JSON.parse(savedSectionOrder) as string[];
-    sections.value = order
-        .map(id => sections.value.find(s => s.id === id))
-        .filter(Boolean) as typeof sections.value;
-}
+const isBrowser = typeof window !== 'undefined';
 
-watch(sections, (val) => {
-    localStorage.setItem('dashboardSectionOrder', JSON.stringify(val.map(s => s.id)));
-}, { deep: true });
-
+const readOrder = (key: string): string[] | null => {
+    if (!isBrowser) return null;
+    try {
+        const saved = localStorage.getItem(key);
+        return saved ? (JSON.parse(saved) as string[]) : null;
+    } catch {
+        return null;
+    }
+};
 
 const topOverdue = [
     { name: 'Ana Lim', email: 'ana@email.com', lot: '15', block: '4', subdivision: 'Sunshine Homes', balance: 780000, monthsOverdue: 16 },
@@ -188,7 +160,50 @@ const formatPesoShort = (amount: number) =>
 const displayValue = (card: typeof statCards.value[0]) =>
     card.format === 'peso' ? formatPeso(card.value) : card.value;
 
+watch(statCards, (val) => {
+    if (!isBrowser) return;
+    localStorage.setItem('dashboardCardOrder', JSON.stringify(val.map(c => c.id)));
+}, { deep: true });
+
+watch(statsCardSummary, (val) => {
+    if (!isBrowser) return;
+    localStorage.setItem('dashboardSummaryCardOrder', JSON.stringify(val.map(c => c.id)));
+}, { deep: true });
+
+watch(sections, (val) => {
+    if (!isBrowser) return;
+    localStorage.setItem('dashboardSectionOrder', JSON.stringify(val.map(s => s.id)));
+}, { deep: true });
+
 onMounted(() => {
+    // Restore stat cards order
+    const cardOrder = readOrder('dashboardCardOrder');
+    if (cardOrder) {
+        statCards.value = cardOrder
+            .map(id => statCards.value.find(c => c.id === id))
+            .filter(Boolean) as typeof statCards.value;
+    }
+
+    // Restore summary cards order
+    const summaryOrder = readOrder('dashboardSummaryCardOrder');
+    if (summaryOrder) {
+        statsCardSummary.value = summaryOrder
+            .map(id => statsCardSummary.value.find(c => c.id === id))
+            .filter(Boolean) as typeof statsCardSummary.value;
+    }
+
+    // Restore sections order
+    const sectionOrder = readOrder('dashboardSectionOrder');
+    if (sectionOrder) {
+        sections.value = sectionOrder
+            .map(id => sections.value.find(s => s.id === id))
+            .filter(Boolean) as typeof sections.value;
+    }
+
+    // Done restoring — show the dashboard
+    isReady.value = true;
+
+    // Init charts
     if (statusChartRef.value) {
         new Chart(statusChartRef.value, {
             type: 'pie',
@@ -243,7 +258,7 @@ onMounted(() => {
 
     <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
 
-        <!-- Header — fixed sa taas, hindi draggable -->
+        <!-- Header — always visible, hindi kasama sa drag -->
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">Dashboard</h1>
@@ -257,8 +272,17 @@ onMounted(() => {
             </button>
         </div>
 
-        <!-- Outer draggable — 4 sections: stat cards, collection summary, charts, top overdue -->
+        <!-- Skeleton loader — visible habang hindi pa nare-restore ang order -->
+        <div v-if="!isReady" class="flex flex-col gap-6 animate-pulse">
+            <div class="h-32 rounded-xl bg-gray-100 dark:bg-zinc-800"></div>
+            <div class="h-24 rounded-xl bg-gray-100 dark:bg-zinc-800"></div>
+            <div class="h-64 rounded-xl bg-gray-100 dark:bg-zinc-800"></div>
+            <div class="h-48 rounded-xl bg-gray-100 dark:bg-zinc-800"></div>
+        </div>
+
+        <!-- Main content — naka-hide muna habang nag-rerestore para walang flash -->
         <draggable
+            v-if="isReady"
             v-model="sections"
             item-key="id"
             class="flex flex-col gap-6"
@@ -269,7 +293,6 @@ onMounted(() => {
             <template #item="{ element: section }">
 
                 <div v-if="section.id === 'stat-cards'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- SECTION 1: Stat Cards -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -319,7 +342,6 @@ onMounted(() => {
                 </div>
 
                 <div v-else-if="section.id === 'collection-summary'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- SECTION 2: Collection Summary -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -350,27 +372,9 @@ onMounted(() => {
                             </div>
                         </template>
                     </draggable>
-                    <!-- <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                        <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-                            <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Total Collectible</p>
-                            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ formatPeso(stats.totalCollectibleAmount) }}</p>
-                            <p class="mt-1 text-xs text-gray-400">Combined lot prices</p>
-                        </div>
-                        <div class="rounded-xl border border-green-200 bg-white p-5 dark:border-green-800 dark:bg-zinc-900">
-                            <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Total Collected</p>
-                            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ formatPeso(stats.totalCollectedAmount) }}</p>
-                            <p class="mt-1 text-xs text-gray-400">Total amount paid</p>
-                        </div>
-                        <div class="rounded-xl border border-red-200 bg-white p-5 dark:border-red-800 dark:bg-zinc-900">
-                            <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Overdue Balance</p>
-                            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ formatPeso(stats.overDueBalance) }}</p>
-                            <p class="mt-1 text-xs text-gray-400">Unpaid overdue amount</p>
-                        </div>
-                    </div> -->
                 </div>
 
                 <div v-else-if="section.id === 'charts'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- SECTION 3: Charts -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -392,7 +396,6 @@ onMounted(() => {
                 </div>
 
                 <div v-else-if="section.id === 'top-overdue'" class="rounded-xl border border-dashed border-gray-200 p-3 dark:border-zinc-700">
-                    <!-- SECTION 4: Top Overdue Table -->
                     <div class="section-drag-handle mb-3 flex cursor-grab items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-500 active:cursor-grabbing dark:text-zinc-500">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M3 8h18M3 12h18M3 16h18" stroke-width="2" stroke-linecap="round"/>
@@ -444,7 +447,9 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
+
             </template>
         </draggable>
+
     </div>
 </template>
