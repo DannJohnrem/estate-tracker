@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import * as clientRoute from '@/routes/clients';
+import * as lotRoute from '@/routes/lots';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Breadcrumb = {
@@ -62,10 +63,20 @@ const formatDate = (date: string | null) => {
     });
 };
 
-const amountPaid = (lot: Lot) => (lot.months_paid * lot.monthly_amortization) + lot.down_payment;
-const remainingBalance = (lot: Lot) => Math.max(0, lot.total_contract_price - amountPaid(lot));
-const progressPercent = (lot: Lot) => Math.min(100, Math.round((amountPaid(lot) / lot.total_contract_price) * 100));
-const remainingMonths = (lot: Lot) => Math.max(0, lot.term_months - lot.months_paid);
+const amountPaid = (lot: Lot) =>
+    (Number(lot.months_paid) * Number(lot.monthly_amortization)) + Number(lot.down_payment);
+
+const remainingBalance = (lot: Lot) =>
+    Math.max(0, Number(lot.total_contract_price) - amountPaid(lot));
+
+const progressPercent = (lot: Lot) => {
+    const total = Number(lot.total_contract_price);
+    if (total === 0) return 0;
+    return Math.min(100, Math.round((amountPaid(lot) / total) * 100));
+};
+
+const remainingMonths = (lot: Lot) =>
+    Math.max(0, Number(lot.term_months) - Number(lot.months_paid));
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const LOT_STATUS: Record<string, { label: string; classes: string; dot: string }> = {
@@ -81,7 +92,12 @@ const getLotStatus = (s: string) =>
 // ─── Delete ───────────────────────────────────────────────────────────────────
 const deleteClient = () => {
     if (!confirm(`Remove "${fullName}" from the system? This cannot be undone.`)) return;
-    router.delete(clientRoute.destroy({ client: props.client.id }));
+    router.delete(clientRoute.destroy({ client: props.client.id }).url);
+};
+
+const deleteLot = (id: number) => {
+    if (!confirm('Remove this lot? This cannot be undone.')) return;
+    router.delete(lotRoute.destroy({ lot: id }).url, { preserveScroll: true });
 };
 </script>
 
@@ -102,7 +118,7 @@ const deleteClient = () => {
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                <Link :href="clientRoute.edit({ client: client.id })"
+                <Link :href="clientRoute.edit({ client: client.id }).url"
                     class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-300 dark:hover:bg-zinc-800">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -213,7 +229,13 @@ const deleteClient = () => {
                 <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Lot Records
                 </h2>
-                <!-- Future: Add Lot button here -->
+                <Link :href="`${lotRoute.create().url}?client_id=${client.id}`"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-700">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Lot
+                </Link>
             </div>
 
             <!-- Empty state -->
@@ -244,11 +266,24 @@ const deleteClient = () => {
                                 <span v-if="lot.phase"> · {{ lot.phase }}</span>
                             </p>
                         </div>
-                        <span :class="getLotStatus(lot.status).classes"
-                            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                            <span :class="getLotStatus(lot.status).dot" class="h-1.5 w-1.5 rounded-full"></span>
-                            {{ getLotStatus(lot.status).label }}
-                        </span>
+
+                        <!-- Right side — status + actions -->
+                        <div class="flex items-center gap-2">
+                            <span :class="getLotStatus(lot.status).classes"
+                                class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                <span :class="getLotStatus(lot.status).dot" class="h-1.5 w-1.5 rounded-full"></span>
+                                {{ getLotStatus(lot.status).label }}
+                            </span>
+
+                            <Link :href="lotRoute.edit({ lot: lot.id }).url"
+                                class="text-xs font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
+                                Edit
+                            </Link>
+                            <button @click="deleteLot(lot.id)"
+                                class="text-xs font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                Remove
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Lot Card Body -->

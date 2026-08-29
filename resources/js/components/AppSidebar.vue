@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Users } from 'lucide-vue-next'; // ← add Users icon
+import { LayoutGrid, Users, MapPin } from 'lucide-vue-next'; // ← add Users and MapPin icons
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import * as clientRoute from '@/routes/clients';
+import * as lotRoute from '@/routes/lots';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -28,6 +29,11 @@ const mainNavItems: NavItem[] = [
         href: clientRoute.index(),
         icon: Users,
     },
+    {
+        title: 'Lots',
+        href: lotRoute.index(),
+        icon: MapPin,
+    }
 ];
 </script>
 

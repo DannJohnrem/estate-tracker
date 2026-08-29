@@ -18,22 +18,41 @@ defineOptions({
     },
 });
 
-const stats = {
-    totalClients: 124,
-    overDuePayments: 400,
-    currentPayments: 34,
-    paidPayments: 78,
-    totalCollectibleAmount: 50000,
-    totalCollectedAmount: 45000,
-    overDueBalance: 10000,
-    currentBalance: 20000,
-};
+// ── NEW: props galing sa DashboardController ──
+const props = defineProps<{
+    stats: {
+        totalClients: number;
+        overDuePayments: number;
+        currentPayments: number;
+        paidPayments: number;
+        totalCollectibleAmount: number;
+        totalCollectedAmount: number;
+        overDueBalance: number;
+        currentBalance: number;
+    };
+    topOverdue: Array<{
+        name: string;
+        email: string;
+        lot: string;
+        block: string;
+        subdivision: string;
+        balance: number;
+        monthsOverdue: number;
+    }>;
+    monthlyCollections: Array<{
+        month: string;
+        amount: number;
+    }>;
+}>();
+
+// ── REMOVED: yung hardcoded const stats = {...} dati dito ──
+// ── REMOVED: yung hardcoded const topOverdue = [...] dati dito ──
 
 const statCards = ref([
     {
         id: 'clients',
         label: 'Total Clients',
-        value: stats.totalClients,
+        value: props.stats.totalClients, // <-- palitan
         format: 'number',
         description: 'All registered clients',
         cardClass: 'border-gray-200 dark:border-zinc-700',
@@ -45,7 +64,7 @@ const statCards = ref([
     {
         id: 'overdue',
         label: 'Overdue',
-        value: stats.overDuePayments,
+        value: props.stats.overDuePayments, // <-- palitan
         format: 'number',
         description: 'Past due date',
         cardClass: 'border-red-200 dark:border-red-800',
@@ -57,7 +76,7 @@ const statCards = ref([
     {
         id: 'current',
         label: 'Current',
-        value: stats.currentPayments,
+        value: props.stats.currentPayments, // <-- palitan
         format: 'number',
         description: 'On-time payments',
         cardClass: 'border-yellow-200 dark:border-yellow-800',
@@ -69,7 +88,7 @@ const statCards = ref([
     {
         id: 'paid',
         label: 'Fully Paid',
-        value: stats.paidPayments,
+        value: props.stats.paidPayments, // <-- palitan
         format: 'number',
         description: 'Completed payments',
         cardClass: 'border-green-200 dark:border-green-800',
@@ -84,7 +103,7 @@ const statsCardSummary = ref([
     {
         id: 'collectible',
         label: 'Total Collectible',
-        value: stats.totalCollectibleAmount,
+        value: props.stats.totalCollectibleAmount, // <-- palitan
         format: 'peso',
         description: 'Combined lot prices',
         cardClass: 'border-gray-200 dark:border-zinc-700',
@@ -96,7 +115,7 @@ const statsCardSummary = ref([
     {
         id: 'collected',
         label: 'Total Collected',
-        value: stats.totalCollectedAmount,
+        value: props.stats.totalCollectedAmount, // <-- palitan
         format: 'peso',
         description: 'Total amount paid',
         cardClass: 'border-green-200 dark:border-green-800',
@@ -108,7 +127,7 @@ const statsCardSummary = ref([
     {
         id: 'overdueBalance',
         label: 'Overdue Balance',
-        value: stats.overDueBalance,
+        value: props.stats.overDueBalance, // <-- palitan
         format: 'peso',
         description: 'Unpaid overdue amount',
         cardClass: 'border-red-200 dark:border-red-800',
@@ -140,13 +159,7 @@ const readOrder = (key: string): string[] | null => {
     }
 };
 
-const topOverdue = [
-    { name: 'Ana Lim', email: 'ana@email.com', lot: '15', block: '4', subdivision: 'Sunshine Homes', balance: 780000, monthsOverdue: 16 },
-    { name: 'Juan dela Cruz', email: 'juan@email.com', lot: '12', block: '3', subdivision: 'Villa Ramos', balance: 730000, monthsOverdue: 14 },
-    { name: 'Roberto Cruz', email: 'roberto@email.com', lot: '7', block: '2', subdivision: 'Green Valley', balance: 520000, monthsOverdue: 11 },
-    { name: 'Linda Torres', email: 'linda@email.com', lot: '2', block: '6', subdivision: 'Villa Ramos', balance: 430000, monthsOverdue: 9 },
-    { name: 'Mario Bautista', email: 'mario@email.com', lot: '9', block: '1', subdivision: 'Sunshine Homes', balance: 310000, monthsOverdue: 7 },
-];
+// ── REMOVED: hardcoded topOverdue array — gagamitin na lang props.topOverdue sa template ──
 
 const statusChartRef = ref<HTMLCanvasElement | null>(null);
 const monthlyChartRef = ref<HTMLCanvasElement | null>(null);
@@ -176,7 +189,6 @@ watch(sections, (val) => {
 }, { deep: true });
 
 onMounted(() => {
-    // Restore stat cards order
     const cardOrder = readOrder('dashboardCardOrder');
     if (cardOrder) {
         statCards.value = cardOrder
@@ -184,7 +196,6 @@ onMounted(() => {
             .filter(Boolean) as typeof statCards.value;
     }
 
-    // Restore summary cards order
     const summaryOrder = readOrder('dashboardSummaryCardOrder');
     if (summaryOrder) {
         statsCardSummary.value = summaryOrder
@@ -192,7 +203,6 @@ onMounted(() => {
             .filter(Boolean) as typeof statsCardSummary.value;
     }
 
-    // Restore sections order
     const sectionOrder = readOrder('dashboardSectionOrder');
     if (sectionOrder) {
         sections.value = sectionOrder
@@ -200,17 +210,15 @@ onMounted(() => {
             .filter(Boolean) as typeof sections.value;
     }
 
-    // Done restoring — show the dashboard
     isReady.value = true;
 
-    // Init charts
     if (statusChartRef.value) {
         new Chart(statusChartRef.value, {
             type: 'pie',
             data: {
                 labels: ['Overdue', 'Current', 'Paid'],
                 datasets: [{
-                    data: [stats.overDuePayments, stats.currentPayments, stats.paidPayments],
+                    data: [props.stats.overDuePayments, props.stats.currentPayments, props.stats.paidPayments], // <-- palitan
                     backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'],
                     borderWidth: 2,
                     borderColor: '#ffffff',
@@ -229,10 +237,10 @@ onMounted(() => {
         new Chart(monthlyChartRef.value, {
             type: 'bar',
             data: {
-                labels: ['Nov 2024', 'Dec 2024', 'Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025'],
+                labels: props.monthlyCollections.map(m => m.month), // <-- palitan (dating hardcoded array)
                 datasets: [{
                     label: 'Collections',
-                    data: [1200000, 980000, 1450000, 1100000, 1320000, 870000],
+                    data: props.monthlyCollections.map(m => m.amount), // <-- palitan (dating hardcoded array)
                     backgroundColor: '#6366f1',
                     borderRadius: 6,
                     borderSkipped: false,
@@ -409,7 +417,7 @@ onMounted(() => {
                                 <p class="mt-0.5 text-xs text-gray-400">Clients with longest overdue payments</p>
                             </div>
                             <span class="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                {{ stats.overDuePayments }} overdue
+                                {{ props.stats.overDuePayments }} overdue
                             </span>
                         </div>
                         <div class="overflow-x-auto">
@@ -425,7 +433,7 @@ onMounted(() => {
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-zinc-800">
                                     <tr
-                                        v-for="client in topOverdue"
+                                        v-for="client in props.topOverdue"
                                         :key="client.email"
                                         class="transition-colors hover:bg-red-50 dark:hover:bg-red-900/10"
                                     >
