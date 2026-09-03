@@ -1,6 +1,20 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Users, MapPin } from 'lucide-vue-next'; // ← add Users and MapPin icons
+import {
+    LayoutGrid,
+    Users,
+    MapPin,
+    Wallet,
+    Building2,
+    UserRoundCog,
+    FileText,
+    BarChart3,
+    CalendarClock,
+    TrendingUp,
+    AlertTriangle,
+    ClipboardList,
+    Percent,
+} from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -16,27 +30,108 @@ import {
 import { dashboard } from '@/routes';
 import * as clientRoute from '@/routes/clients';
 import * as lotRoute from '@/routes/lots';
-import type { NavItem } from '@/types';
+import type { NavGroup } from '@/types';
 
-const mainNavItems: NavItem[] = [
+// 🔧 Settings ay INALIS na dito — nasa UserMenuContent.vue (avatar dropdown) na lang,
+// para iwas redundant. Roles & Permissions ay makikita naman sa loob ng Settings page mismo.
+
+const navGroups: NavGroup[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
+        label: 'Platform',
+        items: [
+            {
+                title: 'Dashboard',
+                href: dashboard(),
+                icon: LayoutGrid,
+            },
+            {
+                title: 'Clients',
+                href: clientRoute.index(),
+                icon: Users,
+            },
+            {
+                title: 'Lots',
+                href: lotRoute.index(),
+                icon: MapPin,
+            },
+        ],
     },
     {
-        title: 'Clients',
-        href: clientRoute.index(),
-        icon: Users,
+        label: 'Sales & Operations',
+        items: [
+            // 🔧 STATIC MUNA — wala pang routes/controllers, i-uncomment/i-wire kapag na-build na yung module
+            {
+                title: 'Projects', // Subdivisions/Phases — grouping ng mga lots
+                href: '#',
+                icon: Building2,
+            },
+            {
+                title: 'Payments', // Collections / payment history ledger (hiwalay sa per-lot recordPayment)
+                href: '#',
+                icon: Wallet,
+            },
+            {
+                title: 'Reservations', // Lot reservation bago maging buong sale
+                href: '#',
+                icon: CalendarClock,
+            },
+            {
+                title: 'Agents', // Sales agents / brokers + commission tracking
+                href: '#',
+                icon: UserRoundCog,
+            },
+        ],
     },
     {
-        title: 'Lots',
-        href: lotRoute.index(),
-        icon: MapPin,
-    }
+        label: 'Records',
+        items: [
+            {
+                title: 'Documents', // Contracts to sell, deeds, titles
+                href: '#',
+                icon: FileText,
+            },
+            {
+                // 🔧 STATIC MUNA — Reports collapsible group, exportable to Excel later (xlsx)
+                title: 'Reports', // Analytics / collection reports / aging
+                href: '#',
+                icon: BarChart3,
+                items: [
+                    {
+                        title: 'Collections Report', // Daily/monthly na na-collect na payments
+                        href: '#',
+                        icon: Wallet,
+                    },
+                    {
+                        title: 'Aging of Receivables', // Overdue breakdown (30/60/90+ days)
+                        href: '#',
+                        icon: AlertTriangle,
+                    },
+                    {
+                        title: 'Sales Report', // Per-project/per-agent sales summary
+                        href: '#',
+                        icon: TrendingUp,
+                    },
+                    {
+                        title: 'Client Statement of Account', // Per-client ledger
+                        href: '#',
+                        icon: ClipboardList,
+                    },
+                    {
+                        title: 'Lot Inventory Report', // Available/reserved/sold/delinquent per project
+                        href: '#',
+                        icon: MapPin,
+                    },
+                    {
+                        title: 'Commission Report', // Agent/broker commission summary
+                        href: '#',
+                        icon: Percent,
+                    },
+                ],
+            },
+        ],
+    },
 ];
 </script>
-
 <template>
     <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
@@ -50,11 +145,9 @@ const mainNavItems: NavItem[] = [
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
-
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :groups="navGroups" />
         </SidebarContent>
-
         <SidebarFooter>
             <NavUser />
         </SidebarFooter>
