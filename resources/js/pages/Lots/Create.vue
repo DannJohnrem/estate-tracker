@@ -16,7 +16,7 @@ defineOptions({
 
 type ClientOption = { id: number; name: string };
 
-const props = defineProps<{
+defineProps<{
     clients: ClientOption[];
     selected_client_id: number | null;
 }>();
