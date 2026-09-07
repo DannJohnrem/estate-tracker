@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Pages\ClientController;
 use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\LotController;
@@ -11,7 +12,12 @@ Route::inertia('/', 'Welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('guest')->group(function () {
+    Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
+
+Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('clients', ClientController::class);
@@ -20,3 +26,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+require __DIR__.'/admin.php';

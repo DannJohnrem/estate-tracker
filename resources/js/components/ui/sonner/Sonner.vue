@@ -4,13 +4,23 @@ import { Toaster as SonnerPrimitive } from 'vue-sonner';
 import 'vue-sonner/style.css';
 
 const { appearance } = useAppearance();
+
+withDefaults(
+    defineProps<{
+        position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center';
+    }>(),
+    {
+        position: 'top-right',
+    },
+);
 </script>
 
 <template>
     <SonnerPrimitive
         :theme="appearance"
         class="toaster group"
-        position="bottom-right"
+        :position="position"
+        rich-colors
         :style="{
             '--normal-bg': 'var(--popover)',
             '--normal-text': 'var(--popover-foreground)',

@@ -1,4 +1,6 @@
 import { createInertiaApp } from '@inertiajs/vue3';
+import { createApp } from 'vue';
+import { Toaster } from '@/components/ui/sonner';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -31,3 +33,11 @@ initializeTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
+
+// 🔧 Mount the Toaster as a SEPARATE, persistent Vue app outside of Inertia's
+// page/layout lifecycle. Inertia tears down and rebuilds the #app tree on
+// every navigation, so a Toaster mounted inside any layout gets destroyed
+// mid-flight (this was causing toasts to randomly vanish on redirects like
+// logout → Welcome). This #toaster-root mount survives every navigation
+// because it's never touched by Inertia at all.
+createApp(Toaster, { position: 'top-right' }).mount('#toaster-root');

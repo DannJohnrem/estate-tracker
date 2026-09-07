@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
 import { LogOut, Settings } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -18,6 +19,7 @@ type Props = {
 
 const handleLogout = () => {
     router.flushAll();
+    toast.success('You have been logged out.');
 };
 
 defineProps<Props>();
