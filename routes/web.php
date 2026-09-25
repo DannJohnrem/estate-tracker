@@ -22,7 +22,22 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
 
     Route::resource('clients', ClientController::class);
     Route::resource('lots', LotController::class);
-    Route::post('lots/{lot}/payments', [PaymentController::class, 'store'])->name('lots.payments.store');
+
+    // Payments module (payments/create must come before payments/{payment})
+    Route::get('payments', [PaymentController::class, 'index'])
+        ->name('payments.index')->middleware('can:payments.view');
+    Route::get('payments/create', [PaymentController::class, 'create'])
+        ->name('payments.create')->middleware('can:payments.create');
+    Route::post('payments', [PaymentController::class, 'store'])
+        ->name('payments.store')->middleware('can:payments.create');
+    Route::get('payments/{payment}', [PaymentController::class, 'show'])
+        ->name('payments.show')->middleware('can:payments.view')->whereUuid('payment');
+    Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])
+        ->name('payments.destroy')->middleware('can:payments.delete')->whereUuid('payment');
+
+    // Quick record from the Lot page
+    Route::post('lots/{lot}/payments', [PaymentController::class, 'storeForLot'])
+        ->name('lots.payments.store')->middleware('can:payments.create');
 });
 
 require __DIR__.'/settings.php';

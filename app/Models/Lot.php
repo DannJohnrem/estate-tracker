@@ -2,31 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable(['client_id', 'lot_number', 'block_number', 'subdivision', 'phase', 'lot_area', 'total_contract_price', 'down_payment', 'monthly_amortization', 'term_months', 'months_paid', 'start_date', 'next_due_date', 'status'])]
 class Lot extends Model
 {
-    use SoftDeletes;
-
-    protected $fillable = [
-        'client_id',
-        'lot_number',
-        'block_number',
-        'subdivision',
-        'phase',
-        'lot_area',
-        'total_contract_price',
-        'down_payment',
-        'monthly_amortization',
-        'term_months',
-        'months_paid',
-        'start_date',
-        'next_due_date',
-        'status',
-    ];
+    use SoftDeletes, HasFactory;
 
     protected $casts = [
         'start_date'             => 'date',

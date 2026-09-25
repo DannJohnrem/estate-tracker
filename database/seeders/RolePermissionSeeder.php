@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -52,16 +53,20 @@ class RolePermissionSeeder extends Seeder
         ]);
         $staff->permissions()->attach(
             $permissions->whereIn('group', ['clients', 'lots', 'payments'])
-                ->where('slug', '!=', fn ($p) => str($p)->endsWith('.delete'))
+                ->reject(fn ($p) => str($p->slug)->endsWith('.delete'))
                 ->pluck('id')
         );
 
-        // Ikaw bilang unang Super Admin — palitan kung iba yung email mo
-        $owner = User::where('email', 'jonrhem10@gmail.com')->first();
+        $owner = User::updateOrCreate(
+            ['email' => 'jonrhem10@gmail.com'],
+            [
+                'name' => 'Dann Johnrem Araullo',
+                'password' => Hash::make('123123123'),
+                'status' => 'approved',
+                'email_verified_at' => now(),
+            ]
+        );
 
-        if ($owner) {
-            $owner->update(['status' => 'approved']);
-            $owner->roles()->syncWithoutDetaching([$superAdmin->id]);
-        }
+        $owner->roles()->syncWithoutDetaching([$superAdmin->id]);
     }
 }

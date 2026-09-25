@@ -25,10 +25,6 @@ const sidebarNavItems: NavItem[] = [
         title: 'Appearance',
         href: editAppearance(),
     },
-    {
-        title: 'Roles & Permissions',
-        href: '#', icon: ShieldCheck,
-    },
 ];
 
 const { isCurrentOrParentUrl } = useCurrentUrl();

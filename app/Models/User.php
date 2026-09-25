@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 #[Fillable(['name', 'email', 'password'])]
@@ -43,12 +44,23 @@ class User extends Authenticatable
         return $this->roles->contains('slug', $slug);
     }
 
-    public function hasPermission(string $slug): bool
+    /**
+     * Flat, unique list of permission slugs from all of the user's roles.
+     * Shared to the frontend as auth.permissions and used by hasPermission().
+     */
+    public function permissionSlugs(): Collection
     {
         return $this->roles->loadMissing('permissions')
             ->pluck('permissions')
             ->flatten()
-            ->contains('slug', $slug);
+            ->pluck('slug')
+            ->unique()
+            ->values();
+    }
+
+    public function hasPermission(string $slug): bool
+    {
+        return $this->permissionSlugs()->contains($slug);
     }
 
     public function isApproved(): bool

@@ -7,6 +7,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureAuthEvents();
+        $this->configureAuthorization();
     }
 
     /**
@@ -67,6 +69,20 @@ class AppServiceProvider extends ServiceProvider
                 'type' => 'success',
                 'message' => "Welcome back, {$event->user->name}!",
             ]);
+        });
+    }
+
+    /**
+     * Every permission slug in the permissions table works as a Gate ability,
+     * e.g. ->middleware('can:clients.create') or Gate::authorize('clients.delete').
+     *
+     * Returning null (not false) when the user lacks the permission lets
+     * any existing policies still run.
+     */
+    protected function configureAuthorization(): void
+    {
+        Gate::before(function ($user, string $ability) {
+            return $user->hasPermission($ability) ?: null;
         });
     }
 }

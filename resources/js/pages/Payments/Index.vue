@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { dashboard } from '@/routes';
+import * as paymentRoute from '@/routes/payments';
 import * as lotRoute from '@/routes/lots';
 import * as clientRoute from '@/routes/clients';
 import {
@@ -12,13 +13,14 @@ import {
 } from '@tanstack/vue-table';
 import { ref, watch } from 'vue';
 import Pagination from '@/components/Pagination.vue';
+import { PAYMENT_METHODS, PAYMENT_STATUS, methodLabel } from '@/lib/payments';
 
 // Layout
 defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: dashboard() },
-            { title: 'Lots', href: lotRoute.index() },
+            { title: 'Payments', href: paymentRoute.index() },
         ],
     },
 });
@@ -31,26 +33,25 @@ type Client = {
     last_name: string;
 };
 
-type Lot = {
-    id: number;
-    client_id: number;
-    lot_number: string;
-    block_number: string | null;
-    subdivision: string;
-    phase: string | null;
-    lot_area: number;
-    total_contract_price: number;
-    down_payment: number;
-    monthly_amortization: number;
-    term_months: number;
-    months_paid: number;
-    next_due_date: string | null;
-    status: 'active' | 'delinquent' | 'fully_paid' | 'cancelled';
-    client: Client;
+type Payment = {
+    id: string;
+    or_number: string | null;
+    amount: string | number;
+    paid_at: string;
+    method: string | null;
+    status: 'posted' | 'voided';
+    lot: {
+        id: number;
+        client_id: number;
+        lot_number: string;
+        block_number: string | null;
+        subdivision: string;
+        client: Client;
+    } | null;
 };
 
-type PaginatedLots = {
-    data: Lot[];
+type PaginatedPayments = {
+    data: Payment[];
     current_page: number;
     last_page: number;
     per_page: number;
@@ -62,12 +63,17 @@ type PaginatedLots = {
 
 // Props
 const props = defineProps<{
-    lots: PaginatedLots;
+    payments: PaginatedPayments;
     subdivisions: string[];
+    summary: { total_collected: number; count: number };
+    can: { create: boolean };
     filters: {
         search?: string;
+        method?: string;
         status?: string;
         subdivision?: string;
+        date_from?: string;
+        date_to?: string;
         sort?: string;
         direction?: 'asc' | 'desc';
     };
@@ -75,12 +81,17 @@ const props = defineProps<{
 
 // State
 const search = ref(props.filters.search ?? '');
+const method = ref(props.filters.method ?? '');
 const status = ref(props.filters.status ?? '');
 const subdivision = ref(props.filters.subdivision ?? '');
+const dateFrom = ref(props.filters.date_from ?? '');
+const dateTo = ref(props.filters.date_to ?? '');
+
+const defaultSorting: SortingState = [{ id: 'paid_at', desc: true }];
 const sorting = ref<SortingState>(
     props.filters.sort
-        ? [{ id: props.filters.sort, desc: props.filters.direction === 'desc' }]
-        : [],
+        ? [{ id: props.filters.sort, desc: props.filters.direction !== 'asc' }]
+        : defaultSorting,
 );
 
 // Search debounce
@@ -90,16 +101,19 @@ watch(search, () => {
     searchTimeout = setTimeout(() => applyFilters(), 400);
 });
 
-watch([status, subdivision], () => applyFilters());
+watch([method, status, subdivision, dateFrom, dateTo], () => applyFilters());
 
 // Filters
 const applyFilters = () => {
     router.get(
-        lotRoute.index(),
+        paymentRoute.index().url,
         {
             search: search.value || undefined,
+            method: method.value || undefined,
             status: status.value || undefined,
             subdivision: subdivision.value || undefined,
+            date_from: dateFrom.value || undefined,
+            date_to: dateTo.value || undefined,
             sort: sorting.value[0]?.id ?? undefined,
             direction: sorting.value[0] ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined,
         },
@@ -109,13 +123,17 @@ const applyFilters = () => {
 
 const resetFilters = () => {
     search.value = '';
+    method.value = '';
     status.value = '';
     subdivision.value = '';
-    sorting.value = [];
+    dateFrom.value = '';
+    dateTo.value = '';
+    sorting.value = defaultSorting;
     applyFilters();
 };
 
-const hasActiveFilters = () => search.value || status.value || subdivision.value;
+const hasActiveFilters = () =>
+    search.value || method.value || status.value || subdivision.value || dateFrom.value || dateTo.value;
 
 // Sorting
 const handleSortingChange = (updater: any) => {
@@ -123,80 +141,38 @@ const handleSortingChange = (updater: any) => {
     applyFilters();
 };
 
-// Delete
-const deleteLot = (id: number, label: string) => {
-    if (!confirm(`Remove "${label}"? This cannot be undone.`)) return;
-    router.delete(lotRoute.destroy({ lot: id }), { preserveScroll: true });
-};
-
-// Helper
+// Helpers
 const clientFullName = (client: Client) =>
     [client.first_name, client.middle_name, client.last_name].filter(Boolean).join(' ');
 
-const formatPeso = (amount: number) =>
-    '₱ ' + amount.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+const formatPeso = (amount: number | string) =>
+    '₱ ' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
 
-const remainingBalance = (lot: Lot) => {
-    const paid = (lot.months_paid * lot.monthly_amortization) + lot.down_payment;
-    return Math.max(0, lot.total_contract_price - paid);
+const formatDate = (date: string | null) => {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// Pagination labels: Laravel sends HTML entities ("&laquo; Previous", "Next &raquo;").
-// Decoded here so we can render with {{ }} instead of v-html (v-html on <Link> can render blank).
-const pageLabel = (label: string) =>
-    label.replace('&laquo;', '«').replace('&raquo;', '»');
-
-// Status config
-const LOT_STATUS: Record<string, { label: string; classes: string; dot: string }> = {
-    active: { label: 'Active', classes: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800', dot: 'bg-emerald-500' },
-    delinquent: { label: 'Delinquent', classes: 'bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800', dot: 'bg-red-500' },
-    fully_paid: { label: 'Fully Paid', classes: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-800', dot: 'bg-blue-500' },
-    cancelled: { label: 'Cancelled', classes: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700', dot: 'bg-gray-400' },
-};
-
-const getLotStatus = (s: string) =>
-    LOT_STATUS[s] ?? { label: s, classes: 'bg-gray-100 text-gray-500', dot: 'bg-gray-400' };
+const getStatus = (s: string) =>
+    PAYMENT_STATUS[s] ?? { label: s, classes: 'bg-gray-100 text-gray-500', dot: 'bg-gray-400' };
 
 // Columns
-const col = createColumnHelper<Lot>();
+const col = createColumnHelper<Payment>();
 
 const columns = [
-    col.accessor('lot_number', {
-        id: 'lot',
-        header: 'Lot',
-        enableSorting: true,
-    }),
-    col.accessor('client', {
-        id: 'client',
-        header: 'Client',
-        enableSorting: false,
-    }),
-    col.accessor('subdivision', {
-        header: 'Subdivision',
-        enableSorting: true,
-    }),
-    col.accessor('total_contract_price', {
-        header: 'Contract Price',
-        enableSorting: true,
-    }),
-    col.accessor('monthly_amortization', {
-        header: 'Monthly',
-        enableSorting: false,
-    }),
-    col.accessor('status', {
-        header: 'Status',
-        enableSorting: true,
-    }),
-    col.display({
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-    }),
+    col.accessor('paid_at', { header: 'Date', enableSorting: true }),
+    col.accessor('or_number', { header: 'OR No.', enableSorting: false }),
+    col.display({ id: 'client', header: 'Client', enableSorting: false }),
+    col.display({ id: 'lot', header: 'Lot', enableSorting: false }),
+    col.accessor('method', { header: 'Method', enableSorting: false }),
+    col.accessor('amount', { header: 'Amount', enableSorting: true }),
+    col.accessor('status', { header: 'Status', enableSorting: false }),
+    col.display({ id: 'actions', header: '', enableSorting: false }),
 ];
 
 // Table
 const table = useVueTable({
-    get data() { return props.lots.data; },
+    get data() { return props.payments.data; },
     columns,
     state: { get sorting() { return sorting.value; } },
     getCoreRowModel: getCoreRowModel(),
@@ -204,31 +180,47 @@ const table = useVueTable({
     manualPagination: true,
     manualSorting: true,
     manualFiltering: true,
-    pageCount: props.lots.last_page,
+    pageCount: props.payments.last_page,
 });
 </script>
 
 <template>
 
-    <Head title="Lots" />
+    <Head title="Payments" />
 
     <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
 
         <!-- ── Page Header ── -->
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">Lots</h1>
+                <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">Payments</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {{ lots.total }} total lots registered
+                    {{ payments.total }} payment records
                 </p>
             </div>
-            <Link :href="lotRoute.create()"
+            <Link v-if="can.create" :href="paymentRoute.create().url"
                 class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Add Lot
+                Record Payment
             </Link>
+        </div>
+
+        <!-- ── Summary ── -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Collected</p>
+                <p class="mt-2 text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {{ formatPeso(summary.total_collected) }}
+                </p>
+                <p class="mt-1 text-xs text-gray-400">Posted payments matching the filters below</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Payments</p>
+                <p class="mt-2 text-xl font-bold text-gray-800 dark:text-gray-100">{{ summary.count }}</p>
+                <p class="mt-1 text-xs text-gray-400">Voided payments are not counted</p>
+            </div>
         </div>
 
         <!-- ── Filters ── -->
@@ -241,18 +233,32 @@ const table = useVueTable({
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                 </svg>
-                <input v-model="search" type="text" placeholder="Search lot, client, subdivision..."
+                <input v-model="search" type="text" placeholder="Search OR no., client, lot..."
                     class="w-72 rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:placeholder:text-gray-500" />
             </div>
+
+            <!-- Date range -->
+            <div class="flex items-center gap-2">
+                <input v-model="dateFrom" type="date" aria-label="From date"
+                    class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white" />
+                <span class="text-sm text-gray-400">to</span>
+                <input v-model="dateTo" type="date" aria-label="To date"
+                    class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white" />
+            </div>
+
+            <!-- Method filter -->
+            <select v-model="method"
+                class="rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
+                <option value="">All Methods</option>
+                <option v-for="m in PAYMENT_METHODS" :key="m.value" :value="m.value">{{ m.label }}</option>
+            </select>
 
             <!-- Status filter -->
             <select v-model="status"
                 class="rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
                 <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="delinquent">Delinquent</option>
-                <option value="fully_paid">Fully Paid</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="posted">Posted</option>
+                <option value="voided">Voided</option>
             </select>
 
             <!-- Subdivision filter -->
@@ -297,15 +303,10 @@ const table = useVueTable({
                 <tbody class="divide-y divide-gray-100 dark:divide-zinc-800">
 
                     <!-- Empty state -->
-                    <tr v-if="lots.data.length === 0">
+                    <tr v-if="payments.data.length === 0">
                         <td :colspan="columns.length" class="px-5 py-16 text-center">
                             <div class="flex flex-col items-center gap-2">
-                                <svg class="h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                                </svg>
-                                <p class="text-sm font-medium text-gray-400 dark:text-gray-500">No lots found</p>
+                                <p class="text-sm font-medium text-gray-400 dark:text-gray-500">No payments found</p>
                                 <p class="text-xs text-gray-300 dark:text-gray-600">Try adjusting your search or filter
                                 </p>
                             </div>
@@ -314,53 +315,59 @@ const table = useVueTable({
 
                     <!-- Rows -->
                     <tr v-for="row in table.getRowModel().rows" :key="row.id"
-                        class="group transition-colors hover:bg-amber-50/40 dark:hover:bg-amber-900/10">
-                        <!-- Lot -->
-                        <td class="px-5 py-4">
-                            <p class="font-medium text-gray-900 dark:text-white">
-                                Blk {{ row.original.block_number }} Lot {{ row.original.lot_number }}
-                            </p>
-                            <p class="text-xs text-gray-400">
-                                {{ row.original.lot_area }} sqm
-                                <span v-if="row.original.phase"> · {{ row.original.phase }}</span>
-                            </p>
+                        class="group transition-colors hover:bg-amber-50/40 dark:hover:bg-amber-900/10"
+                        :class="{ 'opacity-60': row.original.status === 'voided' }">
+
+                        <!-- Date -->
+                        <td class="px-5 py-4 text-gray-700 dark:text-gray-300">
+                            {{ formatDate(row.original.paid_at) }}
+                        </td>
+
+                        <!-- OR No. -->
+                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">
+                            {{ row.original.or_number ?? '—' }}
                         </td>
 
                         <!-- Client -->
                         <td class="px-5 py-4">
-                            <Link :href="clientRoute.show({ client: row.original.client_id })"
+                            <Link v-if="row.original.lot"
+                                :href="clientRoute.show({ client: row.original.lot.client_id }).url"
                                 class="text-sm font-medium text-gray-700 hover:text-amber-700 dark:text-gray-300 dark:hover:text-amber-400">
-                                {{ clientFullName(row.original.client) }}
+                                {{ clientFullName(row.original.lot.client) }}
                             </Link>
+                            <span v-else class="text-gray-400">—</span>
                         </td>
 
-                        <!-- Subdivision -->
-                        <td class="px-5 py-4 text-gray-600 dark:text-gray-300">
-                            {{ row.original.subdivision }}
-                        </td>
-
-                        <!-- Contract Price -->
+                        <!-- Lot -->
                         <td class="px-5 py-4">
-                            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
-                                {{ formatPeso(row.original.total_contract_price) }}
-                            </p>
-                            <p class="text-xs text-red-500 dark:text-red-400">
-                                Balance: {{ formatPeso(remainingBalance(row.original)) }}
-                            </p>
+                            <template v-if="row.original.lot">
+                                <Link :href="lotRoute.show({ lot: row.original.lot.id }).url"
+                                    class="font-medium text-gray-900 hover:text-amber-700 dark:text-white dark:hover:text-amber-400">
+                                    Blk {{ row.original.lot.block_number }} Lot {{ row.original.lot.lot_number }}
+                                </Link>
+                                <p class="text-xs text-gray-400">{{ row.original.lot.subdivision }}</p>
+                            </template>
+                            <span v-else class="text-gray-400">—</span>
                         </td>
 
-                        <!-- Monthly -->
+                        <!-- Method -->
                         <td class="px-5 py-4 text-gray-600 dark:text-gray-300">
-                            {{ formatPeso(row.original.monthly_amortization) }}
+                            {{ methodLabel(row.original.method) }}
+                        </td>
+
+                        <!-- Amount -->
+                        <td class="px-5 py-4 font-medium text-gray-800 dark:text-gray-100"
+                            :class="{ 'line-through': row.original.status === 'voided' }">
+                            {{ formatPeso(row.original.amount) }}
                         </td>
 
                         <!-- Status -->
                         <td class="px-5 py-4">
-                            <span :class="getLotStatus(row.original.status).classes"
+                            <span :class="getStatus(row.original.status).classes"
                                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                                <span :class="getLotStatus(row.original.status).dot"
+                                <span :class="getStatus(row.original.status).dot"
                                     class="h-1.5 w-1.5 rounded-full"></span>
-                                {{ getLotStatus(row.original.status).label }}
+                                {{ getStatus(row.original.status).label }}
                             </span>
                         </td>
 
@@ -368,25 +375,10 @@ const table = useVueTable({
                         <td class="px-5 py-4">
                             <div
                                 class="flex items-center justify-end gap-3 opacity-0 transition-opacity group-hover:opacity-100">
-                                <!-- IDINAGDAG: View link, bago pa yung Client -->
-                                <Link :href="lotRoute.show({ lot: row.original.id })"
-                                    class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                                <Link :href="paymentRoute.show({ payment: row.original.id }).url"
+                                    class="text-xs font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
                                     View
                                 </Link>
-                                <Link :href="clientRoute.show({ client: row.original.client_id })"
-                                    class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                                    Client
-                                </Link>
-                                <Link :href="lotRoute.edit({ lot: row.original.id })"
-                                    class="text-xs font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
-                                    Edit
-                                </Link>
-                                <button @click="deleteLot(
-                                    row.original.id,
-                                    `Blk ${row.original.block_number} Lot ${row.original.lot_number}`
-                                )" class="text-xs font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                    Delete
-                                </button>
                             </div>
                         </td>
                     </tr>
@@ -396,9 +388,8 @@ const table = useVueTable({
         </div>
 
         <!-- ── Pagination ── -->
-        <Pagination :links="lots.links" :from="lots.from" :to="lots.to" :total="lots.total" label="lots" />
+        <Pagination :links="payments.links" :from="payments.from" :to="payments.to" :total="payments.total"
+            label="payments" />
 
     </div>
 </template>
-
-<style scoped></style>

@@ -47,7 +47,7 @@ const props = defineProps<{
             <!-- Add Role -->
             <Button as-child>
                 <Link :href="create().url">
-                    + Bagong Role
+                    + New Role
                 </Link>
             </Button>
         </div>

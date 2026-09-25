@@ -9,6 +9,7 @@ import {
     type SortingState,
 } from '@tanstack/vue-table';
 import { ref, watch } from 'vue';
+import Pagination from '@/components/Pagination.vue';
 import { dashboard } from '@/routes';
 import * as clientRoute from '@/routes/clients';
 
@@ -366,35 +367,8 @@ const table = useVueTable({
             </table>
         </div>
 
-        <!-- Pagination -->
-        <div class="flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                <template v-if="clients.total > 0">
-                    Showing
-                    <span class="font-medium text-gray-700 dark:text-gray-200">{{ clients.from }}</span>
-                    –
-                    <span class="font-medium text-gray-700 dark:text-gray-200">{{ clients.to }}</span>
-                    of
-                    <span class="font-medium text-gray-700 dark:text-gray-200">{{ clients.total }}</span>
-                    clients
-                </template>
-                <template v-else>No results</template>
-            </p>
-
-            <div class="flex items-center gap-1">
-                <template v-for="link in clients.links" :key="link.label">
-                    <Link v-if="link.url" :href="link.url" preserve-scroll preserve-state :class="[
-                        'inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg px-2 text-sm transition',
-                        link.active
-                            ? 'bg-amber-600 font-semibold text-white shadow-sm'
-                            : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-300 dark:hover:bg-zinc-800',
-                    ]" v-html="link.label" />
-                    <span v-else
-                        class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg border border-gray-100 px-2 text-sm text-gray-300 dark:border-zinc-800 dark:text-gray-600"
-                        v-html="link.label" />
-                </template>
-            </div>
-        </div>
+        <!-- ── Pagination ── -->
+        <Pagination :links="clients.links" :from="clients.from" :to="clients.to" :total="clients.total" label="clients" />
 
     </div>
 </template>

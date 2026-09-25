@@ -37,10 +37,10 @@ import * as lotRoute from '@/routes/lots';
 import * as adminUserRoute from '@/routes/admin/users';
 import * as adminRoleRoute from '@/routes/admin/roles';
 import * as adminPermissionRoute from '@/routes/admin/permissions';
-import type { NavGroup } from '@/types';
+import * as paymentRoute from '@/routes/payments';
+import type { NavGroup, NavItem } from '@/types';
 
-// 🔧 Settings ay INALIS na dito — nasa UserMenuContent.vue (avatar dropdown) na lang,
-// para iwas redundant. Roles & Permissions ay makikita naman sa loob ng Settings page mismo.
+// 🔧 Settings ay nasa UserMenuContent.vue (avatar dropdown).
 
 const page = usePage();
 
@@ -52,13 +52,29 @@ const userPermissions = computed<string[]>(() => {
 
 const hasPermission = (slug: string) => userPermissions.value.includes(slug);
 
+// 🔧 NavItem na may optional na permission slug. Walang permission = kita ng lahat.
+type GatedNavItem = Omit<NavItem, 'items'> & {
+    permission?: string;
+    items?: GatedNavItem[];
+};
+
+// 🔧 Sinasala ang items ayon sa permission, pati ang sub-items (hal. Reports).
+// Kapag walang natirang sub-item, itatago rin ang parent.
+const filterItems = (items: GatedNavItem[]): GatedNavItem[] =>
+    items
+        .filter((item) => !item.permission || hasPermission(item.permission))
+        .map((item) =>
+            item.items ? { ...item, items: filterItems(item.items) } : item,
+        )
+        .filter((item) => !item.items || item.items.length > 0);
+
 const navGroups = computed<NavGroup[]>(() => {
-    const groups: NavGroup[] = [
+    const allGroups: { label: string; items: GatedNavItem[] }[] = [
         {
             label: 'Platform',
             items: [
                 {
-                    title: 'Dashboard',
+                    title: 'Dashboard', // walang permission, kita ng lahat
                     href: dashboard(),
                     icon: LayoutGrid,
                 },
@@ -66,37 +82,43 @@ const navGroups = computed<NavGroup[]>(() => {
                     title: 'Clients',
                     href: clientRoute.index(),
                     icon: Users,
+                    permission: 'clients.view',
                 },
                 {
                     title: 'Lots',
                     href: lotRoute.index(),
                     icon: MapPin,
+                    permission: 'lots.view',
                 },
             ],
         },
         {
             label: 'Sales & Operations',
             items: [
-                // 🔧 STATIC MUNA — wala pang routes/controllers, i-uncomment/i-wire kapag na-build na yung module
+                // 🔧 STATIC MUNA — wala pang routes/controllers
                 {
-                    title: 'Projects', // Subdivisions/Phases — grouping ng mga lots
+                    title: 'Projects',
                     href: '#',
                     icon: Building2,
+                    permission: 'projects.view',
                 },
                 {
-                    title: 'Payments', // Collections / payment history ledger (hiwalay sa per-lot recordPayment)
-                    href: '#',
+                    title: 'Payments',
+                    href: paymentRoute.index(),
                     icon: Wallet,
+                    permission: 'payments.view',
                 },
                 {
-                    title: 'Reservations', // Lot reservation bago maging buong sale
+                    title: 'Reservations',
                     href: '#',
                     icon: CalendarClock,
+                    permission: 'reservations.view',
                 },
                 {
-                    title: 'Agents', // Sales agents / brokers + commission tracking
+                    title: 'Agents',
                     href: '#',
                     icon: UserRoundCog,
+                    permission: 'agents.view',
                 },
             ],
         },
@@ -104,77 +126,57 @@ const navGroups = computed<NavGroup[]>(() => {
             label: 'Records',
             items: [
                 {
-                    title: 'Documents', // Contracts to sell, deeds, titles
+                    title: 'Documents',
                     href: '#',
                     icon: FileText,
+                    permission: 'documents.view',
                 },
                 {
-                    // 🔧 STATIC MUNA — Reports collapsible group, exportable to Excel later (xlsx)
-                    title: 'Reports', // Analytics / collection reports / aging
+                    // 🔧 STATIC MUNA — Reports collapsible group
+                    title: 'Reports',
                     href: '#',
                     icon: BarChart3,
+                    permission: 'reports.view', // sakop nito ang lahat ng sub-reports
                     items: [
-                        {
-                            title: 'Collections Report', // Daily/monthly na na-collect na payments
-                            href: '#',
-                            icon: Wallet,
-                        },
-                        {
-                            title: 'Aging of Receivables', // Overdue breakdown (30/60/90+ days)
-                            href: '#',
-                            icon: AlertTriangle,
-                        },
-                        {
-                            title: 'Sales Report', // Per-project/per-agent sales summary
-                            href: '#',
-                            icon: TrendingUp,
-                        },
-                        {
-                            title: 'Client Statement of Account', // Per-client ledger
-                            href: '#',
-                            icon: ClipboardList,
-                        },
-                        {
-                            title: 'Lot Inventory Report', // Available/reserved/sold/delinquent per project
-                            href: '#',
-                            icon: MapPin,
-                        },
-                        {
-                            title: 'Commission Report', // Agent/broker commission summary
-                            href: '#',
-                            icon: Percent,
-                        },
+                        { title: 'Collections', href: '#', icon: Wallet },          // Collections Report
+                        { title: 'Overdue Accounts', href: '#', icon: AlertTriangle }, // Aging of Receivables (30/60/90+ days)
+                        { title: 'Sales', href: '#', icon: TrendingUp },              // Sales Report
+                        { title: 'Client Statements', href: '#', icon: ClipboardList }, // Client Statement of Account
+                        { title: 'Lot Inventory', href: '#', icon: MapPin },          // Lot Inventory Report
+                        { title: 'Commissions', href: '#', icon: Percent },           // Commission Report
                     ],
                 },
             ],
         },
-    ];
-
-    // 🔧 Administration group — makikita lang kung may kahit anong admin permission ang naka-login na user
-    if (hasPermission('users.view') || hasPermission('roles.view')) {
-        groups.push({
+        {
             label: 'Administration',
             items: [
                 {
                     title: 'User Accounts',
                     href: adminUserRoute.index(),
                     icon: UserCog,
+                    permission: 'administration-view-users',
                 },
                 {
                     title: 'Roles',
                     href: adminRoleRoute.index(),
                     icon: ShieldCheck,
+                    permission: 'administration-view-roles',
                 },
                 {
                     title: 'Permissions',
                     href: adminPermissionRoute.index(),
                     icon: KeyRound,
+                    permission: 'administration-view-permission',
                 },
             ],
-        });
-    }
+        },
+    ];
 
-    return groups;
+    // 🔧 Itago ang mga group na walang natirang visible item
+    return allGroups
+        .map((group) => ({ ...group, items: filterItems(group.items) }))
+        .filter((group) => group.items.length > 0);
 });
 </script>
 <template>

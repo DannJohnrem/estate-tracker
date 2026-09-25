@@ -3,6 +3,8 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import * as lotRoute from '@/routes/lots';
 import * as clientRoute from '@/routes/clients';
 import { ref, computed } from 'vue';
+import * as paymentRoute from '@/routes/payments';
+import { PAYMENT_METHODS, PAYMENT_STATUS, methodLabel, todayISO } from '@/lib/payments';
 
 // ── Types ──
 type Client = {
@@ -17,10 +19,13 @@ type Client = {
 
 type Payment = {
     id: string;
+    or_number: string | null;
     amount: string | number;
     paid_at: string;
     method: string | null;
+    reference_number: string | null;
     notes: string | null;
+    status: 'posted' | 'voided';
     created_at: string;
 };
 
@@ -97,8 +102,10 @@ const showPaymentForm = ref(false);
 
 const paymentForm = useForm({
     amount: '',
-    paid_at: new Date().toISOString().slice(0, 10),
+    paid_at: todayISO(),
     method: '',
+    or_number: '',
+    reference_number: '',
     notes: '',
 });
 
@@ -107,7 +114,7 @@ const submitPayment = () => {
         preserveScroll: true,
         onSuccess: () => {
             paymentForm.reset();
-            paymentForm.paid_at = new Date().toISOString().slice(0, 10);
+            paymentForm.paid_at = todayISO();
             showPaymentForm.value = false;
         },
     });
@@ -267,7 +274,7 @@ const cancelPaymentForm = () => {
             class="rounded-xl border border-amber-200 bg-amber-50/40 p-5 dark:border-amber-800 dark:bg-amber-900/10"
         >
             <p class="mb-4 text-sm font-semibold text-gray-800 dark:text-gray-100">Record New Payment</p>
-            <form @submit.prevent="submitPayment" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <form @submit.prevent="submitPayment" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Amount</label>
                     <input
@@ -297,11 +304,26 @@ const cancelPaymentForm = () => {
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
                     >
                         <option value="">— Select —</option>
-                        <option value="cash">Cash</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="gcash">GCash</option>
-                        <option value="check">Check</option>
+                        <option v-for="m in PAYMENT_METHODS" :key="m.value" :value="m.value">{{ m.label }}</option>
                     </select>
+                    <p v-if="paymentForm.errors.method" class="mt-1 text-xs text-red-500">{{ paymentForm.errors.method }}</p>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">OR No. (optional)</label>
+                    <input
+                        v-model="paymentForm.or_number"
+                        type="text"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                    />
+                    <p v-if="paymentForm.errors.or_number" class="mt-1 text-xs text-red-500">{{ paymentForm.errors.or_number }}</p>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Reference No. (optional)</label>
+                    <input
+                        v-model="paymentForm.reference_number"
+                        type="text"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Notes (optional)</label>
@@ -347,20 +369,38 @@ const cancelPaymentForm = () => {
                     <thead>
                         <tr class="border-b border-gray-100 bg-gray-50 dark:border-zinc-800 dark:bg-zinc-800/50">
                             <th class="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Date</th>
+                            <th class="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">OR No.</th>
                             <th class="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Method</th>
                             <th class="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Notes</th>
+                            <th class="px-5 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
                             <th class="px-5 py-3 text-right text-xs font-medium uppercase text-gray-500">Amount</th>
+                            <th class="px-5 py-3"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-zinc-800">
-                        <tr v-for="payment in lot.payments" :key="payment.id">
+                        <tr v-for="payment in lot.payments" :key="payment.id"
+                            :class="{ 'opacity-60': payment.status === 'voided' }">
                             <td class="px-5 py-3 text-gray-700 dark:text-gray-300">{{ formatDate(payment.paid_at) }}</td>
-                            <td class="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">
-                                {{ payment.method?.replace('_', ' ') || '—' }}
-                            </td>
+                            <td class="px-5 py-3 text-gray-600 dark:text-gray-400">{{ payment.or_number || '—' }}</td>
+                            <td class="px-5 py-3 text-gray-600 dark:text-gray-400">{{ methodLabel(payment.method) }}</td>
                             <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ payment.notes || '—' }}</td>
-                            <td class="px-5 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400">
+                            <td class="px-5 py-3">
+                                <span :class="(PAYMENT_STATUS[payment.status] ?? PAYMENT_STATUS.posted).classes"
+                                    class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                    <span :class="(PAYMENT_STATUS[payment.status] ?? PAYMENT_STATUS.posted).dot"
+                                        class="h-1.5 w-1.5 rounded-full"></span>
+                                    {{ (PAYMENT_STATUS[payment.status] ?? PAYMENT_STATUS.posted).label }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400"
+                                :class="{ 'line-through': payment.status === 'voided' }">
                                 {{ formatPeso(payment.amount) }}
+                            </td>
+                            <td class="px-5 py-3 text-right">
+                                <Link :href="paymentRoute.show({ payment: payment.id }).url"
+                                    class="text-xs font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
+                                    View
+                                </Link>
                             </td>
                         </tr>
                     </tbody>
