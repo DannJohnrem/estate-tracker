@@ -44,5 +44,10 @@
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app />
+
+        {{-- Persistent mount point for the Toaster — lives outside Inertia's
+             page/layout swapping, so toasts survive every navigation
+             (including logout redirects to Welcome). --}}
+        <div id="toaster-root"></div>
     </body>
 </html>

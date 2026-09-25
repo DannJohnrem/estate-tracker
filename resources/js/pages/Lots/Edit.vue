@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import * as lotRoute from '@/routes/lots';
+// import * as lotRoute from '@/routes/lots';
 import LotForm from '@/components/Lots/LotForm.vue';
 
 type ClientOption = { id: number; name: string };

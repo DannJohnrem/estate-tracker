@@ -2,24 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable(['first_name', 'middle_name', 'last_name', 'email', 'phone_number', 'address', 'valid_id_type', 'valid_id_number'])]
 class Client extends Model
 {
-    use SoftDeletes;
-
-    protected $fillable = [
-        'first_name',
-        'middle_name',
-        'last_name',
-        'email',
-        'phone_number',
-        'address',
-        'valid_id_type',
-        'valid_id_number',
-    ];
+    use SoftDeletes, HasFactory;
 
     public function lots(): HasMany
     {

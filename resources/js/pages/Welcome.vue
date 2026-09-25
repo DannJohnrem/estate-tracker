@@ -140,7 +140,6 @@ withDefaults(
     z-index: 0;
 }
 
-/* Nav */
 .et-nav {
     display: flex;
     align-items: center;
@@ -190,7 +189,6 @@ withDefaults(
     align-items: center;
 }
 
-/* Buttons */
 .et-btn-outline {
     font-size: 13px;
     border: 0.5px solid rgba(200, 169, 110, 0.5);
@@ -220,7 +218,6 @@ withDefaults(
 .et-btn-fill:hover { opacity: 0.88; }
 .et-btn-lg { padding: 10px 28px; font-size: 14px; }
 
-/* Hero */
 .et-hero {
     padding: 80px 48px 60px;
     position: relative;
@@ -280,7 +277,6 @@ withDefaults(
     color: rgba(232, 228, 220, 0.3);
 }
 
-/* Stats bar */
 .et-stats-bar {
     display: flex;
     border-top: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -314,7 +310,6 @@ withDefaults(
     letter-spacing: 1.5px;
 }
 
-/* Feature cards */
 .et-features {
     padding: 60px 48px;
     position: relative;
@@ -362,7 +357,6 @@ withDefaults(
     margin-bottom: 0;
 }
 
-/* Status pills */
 .et-status-pill {
     display: inline-flex;
     align-items: center;

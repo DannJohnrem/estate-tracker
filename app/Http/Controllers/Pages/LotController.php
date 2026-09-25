@@ -107,7 +107,10 @@ class LotController extends Controller
      */
     public function show(Lot $lot): Response
     {
-        $lot->load('client');
+        $lot->load([
+            'client',
+            'payments' => fn ($q) => $q->orderByDesc('paid_at'),
+        ]);
 
         return Inertia::render('Lots/Show', [
             'lot'         => $lot,

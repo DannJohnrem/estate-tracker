@@ -2,38 +2,27 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Fillable(['client_id', 'lot_number', 'block_number', 'subdivision', 'phase', 'lot_area', 'total_contract_price', 'down_payment', 'monthly_amortization', 'term_months', 'months_paid', 'start_date', 'next_due_date', 'status'])]
 class Lot extends Model
 {
-    use SoftDeletes;
-
-    protected $fillable = [
-        'client_id',
-        'lot_number',
-        'block_number',
-        'subdivision',
-        'phase',
-        'lot_area',
-        'total_contract_price',
-        'down_payment',
-        'monthly_amortization',
-        'term_months',
-        'months_paid',
-        'start_date',
-        'next_due_date',
-        'status',
-    ];
+    use SoftDeletes, HasFactory;
 
     protected $casts = [
         'start_date'             => 'date',
         'next_due_date'          => 'date',
-        'lot_area'               => 'decimal:2',
-        'total_contract_price'   => 'decimal:2',
-        'down_payment'           => 'decimal:2',
-        'monthly_amortization'   => 'decimal:2',
+        'lot_area'               => 'float',
+        'total_contract_price'   => 'float',
+        'down_payment'           => 'float',
+        'monthly_amortization'   => 'float',
+        'term_months'            => 'integer',
+        'months_paid'            => 'integer',
     ];
 
     public function client(): BelongsTo
@@ -80,5 +69,10 @@ class Lot extends Model
     public function scopeFullyPaid($query)
     {
         return $query->where('status', 'fully_paid');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }
