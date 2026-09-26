@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Pages\AgentController;
 use App\Http\Controllers\Pages\ClientController;
 use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\LotController;
@@ -43,6 +44,25 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     Route::resource('projects', ProjectController::class)
     ->only(['index', 'show'])
     ->middleware('can:projects.view');
+
+    // Agents module (agents/create and agents/{agent}/edit must come before agents/{agent})
+    Route::middleware(['permission:agents.view'])->group(function () {
+        Route::get('/agents', [AgentController::class, 'index'])->name('agents.index');
+    });
+    Route::middleware(['permission:agents.create'])->group(function () {
+        Route::get('/agents/create', [AgentController::class, 'create'])->name('agents.create');
+        Route::post('/agents', [AgentController::class, 'store'])->name('agents.store');
+    });
+    Route::middleware(['permission:agents.edit'])->group(function () {
+        Route::get('/agents/{agent}/edit', [AgentController::class, 'edit'])->name('agents.edit');
+        Route::put('/agents/{agent}', [AgentController::class, 'update'])->name('agents.update');
+    });
+    Route::middleware(['permission:agents.view'])->group(function () {
+        Route::get('/agents/{agent}', [AgentController::class, 'show'])->name('agents.show');
+    });
+    Route::middleware(['permission:agents.delete'])->group(function () {
+        Route::delete('/agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
+    });
 });
 
 require __DIR__.'/settings.php';

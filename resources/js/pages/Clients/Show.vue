@@ -9,6 +9,12 @@ type Breadcrumb = {
     href: string;
 };
 
+type Agent = {
+    first_name: string;
+    middle_name: string | null;
+    last_name: string;
+};
+
 type Lot = {
     id: number;
     lot_number: string;
@@ -24,6 +30,7 @@ type Lot = {
     start_date: string;
     next_due_date: string | null;
     status: 'active' | 'delinquent' | 'fully_paid' | 'cancelled';
+    agent: Agent | null;
 };
 
 type Client = {
@@ -43,7 +50,7 @@ type Client = {
 // ─── Props ────────────────────────────────────────────────────────────────────
 const props = defineProps<{
     client: Client;
-    breadcrumbs: Breadcrumb[];      // ← dynamic, galing sa controller
+    breadcrumbs: Breadcrumb[];
 }>();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -77,6 +84,9 @@ const progressPercent = (lot: Lot) => {
 
 const remainingMonths = (lot: Lot) =>
     Math.max(0, Number(lot.term_months) - Number(lot.months_paid));
+
+const agentName = (agent: Agent | null) =>
+    agent ? [agent.first_name, agent.middle_name, agent.last_name].filter(Boolean).join(' ') : null;
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const LOT_STATUS: Record<string, { label: string; classes: string; dot: string }> = {
@@ -264,6 +274,9 @@ const deleteLot = (id: number) => {
                             <p class="mt-0.5 text-xs text-gray-400">
                                 {{ lot.subdivision }}
                                 <span v-if="lot.phase"> · {{ lot.phase }}</span>
+                            </p>
+                            <p v-if="lot.agent" class="mt-0.5 text-xs text-gray-400">
+                                Agent: {{ agentName(lot.agent) }}
                             </p>
                         </div>
 

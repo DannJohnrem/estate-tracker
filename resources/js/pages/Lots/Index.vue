@@ -32,7 +32,7 @@ type Client = {
 };
 
 type Lot = {
-    id: number;
+    id: string;
     client_id: number;
     lot_number: string;
     block_number: string | null;

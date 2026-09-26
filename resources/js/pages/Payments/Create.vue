@@ -17,7 +17,7 @@ defineOptions({
 });
 
 type LotOption = {
-    id: number;
+    id: string;
     label: string;
     subdivision: string;
     client_name: string;

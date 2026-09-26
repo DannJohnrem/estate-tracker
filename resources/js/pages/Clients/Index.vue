@@ -25,7 +25,7 @@ defineOptions({
 
 // Types
 type Lot = {
-    id: number;
+    id: string;
     lot_number: string;
     block_number: string | null;
     subdivision: string;

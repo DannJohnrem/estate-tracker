@@ -94,4 +94,9 @@ class Lot extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(Agent::class);
+    }
 }

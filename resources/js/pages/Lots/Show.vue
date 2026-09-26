@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import * as lotRoute from '@/routes/lots';
 import * as clientRoute from '@/routes/clients';
+import * as agentRoute from '@/routes/agents';
 import { ref, computed } from 'vue';
 import * as paymentRoute from '@/routes/payments';
 import { PAYMENT_METHODS, PAYMENT_STATUS, methodLabel, todayISO } from '@/lib/payments';
@@ -15,6 +16,14 @@ type Client = {
     full_name: string;
     email?: string;
     phone_number?: string;
+};
+
+type Agent = {
+    id: string;
+    first_name: string;
+    middle_name: string | null;
+    last_name: string;
+    commission_rate: number;
 };
 
 type Payment = {
@@ -32,6 +41,7 @@ type Payment = {
 type Lot = {
     id: number;
     client_id: number;
+    agent_id: string | null;
     lot_number: string;
     block_number: string | null;
     subdivision: string;
@@ -46,6 +56,7 @@ type Lot = {
     next_due_date: string | null;
     status: 'active' | 'delinquent' | 'fully_paid' | 'cancelled';
     client: Client;
+    agent: Agent | null;
     payments: Payment[];
 };
 
@@ -70,6 +81,13 @@ const remainingMonths = computed(() =>
 const progressPercent = computed(() => {
     if (props.lot.total_contract_price <= 0) return 0;
     return Math.min(100, Math.round((amountPaid.value / props.lot.total_contract_price) * 100));
+});
+
+const agentFullName = computed(() => {
+    if (!props.lot.agent) return null;
+    return [props.lot.agent.first_name, props.lot.agent.middle_name, props.lot.agent.last_name]
+        .filter(Boolean)
+        .join(' ');
 });
 
 // ── Formatters ──
@@ -162,7 +180,7 @@ const cancelPaymentForm = () => {
 
             <div class="flex items-center gap-2">
                 <Link
-                    :href="lotRoute.edit({ lot: lot.id })"
+                    :href="lotRoute.edit({ lot: lot.id }).url"
                     class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-300 dark:hover:bg-zinc-800"
                 >
                     Edit Lot
@@ -180,28 +198,47 @@ const cancelPaymentForm = () => {
             </div>
         </div>
 
-        <!-- ── Client card ── -->
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Client</p>
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
+        <!-- ── Client + Agent cards ── -->
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Client</p>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <Link
+                            :href="clientRoute.show({ client: lot.client_id }).url"
+                            class="text-lg font-semibold text-gray-800 hover:text-amber-700 dark:text-gray-100 dark:hover:text-amber-400"
+                        >
+                            {{ lot.client.full_name }}
+                        </Link>
+                        <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                            {{ lot.client.email }}
+                            <span v-if="lot.client.phone_number"> · {{ lot.client.phone_number }}</span>
+                        </p>
+                    </div>
                     <Link
-                        :href="clientRoute.show({ client: lot.client_id })"
-                        class="text-lg font-semibold text-gray-800 hover:text-amber-700 dark:text-gray-100 dark:hover:text-amber-400"
+                        :href="clientRoute.show({ client: lot.client_id }).url"
+                        class="text-sm font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
                     >
-                        {{ lot.client.full_name }}
+                        View Client →
                     </Link>
-                    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                        {{ lot.client.email }}
-                        <span v-if="lot.client.phone_number"> · {{ lot.client.phone_number }}</span>
-                    </p>
                 </div>
-                <Link
-                    :href="clientRoute.show({ client: lot.client_id })"
-                    class="text-sm font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
-                >
-                    View Client →
-                </Link>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Handling Agent</p>
+                <div v-if="lot.agent" class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <p class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ agentFullName }}</p>
+                        <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{{ lot.agent.commission_rate }}% commission</p>
+                    </div>
+                    <Link
+                        :href="agentRoute.show({ agent: lot.agent.id }).url"
+                        class="text-sm font-medium text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
+                        View Agent →
+                    </Link>
+                </div>
+                <p v-else class="text-sm text-gray-400">No agent assigned</p>
             </div>
         </div>
 

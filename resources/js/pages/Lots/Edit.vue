@@ -6,7 +6,7 @@ import LotForm from '@/components/Lots/LotForm.vue';
 type ClientOption = { id: number; name: string };
 
 type Lot = {
-    id: number;
+    id: string;
     client_id: number;
     lot_number: string;
     block_number: string;

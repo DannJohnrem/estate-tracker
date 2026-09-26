@@ -15,7 +15,7 @@ class RolePermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $modules = ['clients', 'lots', 'payments', 'projects', 'reservations', 'agents', 'documents', 'reports', 'users', 'roles', 'settings'];
+        $modules = ['clients', 'lots', 'payments', 'projects', 'reservations', 'agents', 'documents', 'reports', 'users', 'roles', 'permissions', 'settings'];
         $actions = ['view', 'create', 'edit', 'delete'];
 
         $permissions = collect();
@@ -33,14 +33,14 @@ class RolePermissionSeeder extends Seeder
         $superAdmin = Role::create([
             'name' => 'Super Admin',
             'slug' => 'super-admin',
-            'description' => 'Buong access sa lahat ng modules, roles, at user management.',
+            'description' => 'Full access to all modules, roles, and user management.',
         ]);
         $superAdmin->permissions()->attach($permissions->pluck('id'));
 
         $admin = Role::create([
             'name' => 'Admin',
             'slug' => 'admin',
-            'description' => 'Access sa operations, walang access sa roles management.',
+            'description' => 'Access to operational modules, excluding role management.',
         ]);
         $admin->permissions()->attach(
             $permissions->reject(fn ($p) => $p->group === 'roles')->pluck('id')
@@ -49,10 +49,10 @@ class RolePermissionSeeder extends Seeder
         $staff = Role::create([
             'name' => 'Staff',
             'slug' => 'staff',
-            'description' => 'View at limited edit access lang.',
+            'description' => 'View access and limited editing permissions only.',
         ]);
         $staff->permissions()->attach(
-            $permissions->whereIn('group', ['clients', 'lots', 'payments'])
+            $permissions->whereIn('group', ['clients', 'lots', 'payments', 'agents'])
                 ->reject(fn ($p) => str($p->slug)->endsWith('.delete'))
                 ->pluck('id')
         );

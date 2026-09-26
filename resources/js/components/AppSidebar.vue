@@ -39,6 +39,7 @@ import * as adminRoleRoute from '@/routes/admin/roles';
 import * as adminPermissionRoute from '@/routes/admin/permissions';
 import * as paymentRoute from '@/routes/payments';
 import * as projectRoute from '@/routes/projects';
+import * as agentRoute from '@/routes/agents';
 import type { NavGroup, NavItem } from '@/types';
 
 // 🔧 Settings ay nasa UserMenuContent.vue (avatar dropdown).
@@ -117,7 +118,7 @@ const navGroups = computed<NavGroup[]>(() => {
                 },
                 {
                     title: 'Agents',
-                    href: '#',
+                    href: agentRoute.index(),
                     icon: UserRoundCog,
                     permission: 'agents.view',
                 },
@@ -156,19 +157,19 @@ const navGroups = computed<NavGroup[]>(() => {
                     title: 'User Accounts',
                     href: adminUserRoute.index(),
                     icon: UserCog,
-                    permission: 'administration-view-users',
+                    permission: 'users.view',
                 },
                 {
                     title: 'Roles',
                     href: adminRoleRoute.index(),
                     icon: ShieldCheck,
-                    permission: 'administration-view-roles',
+                    permission: 'roles.view',
                 },
                 {
                     title: 'Permissions',
                     href: adminPermissionRoute.index(),
                     icon: KeyRound,
-                    permission: 'administration-view-permission',
+                    permission: 'permissions.view',
                 },
             ],
         },
