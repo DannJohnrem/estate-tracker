@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['client_id', 'lot_number', 'block_number', 'subdivision', 'phase', 'lot_area', 'total_contract_price', 'down_payment', 'monthly_amortization', 'term_months', 'months_paid', 'start_date', 'next_due_date', 'status'])]
+#[Fillable(['client_id', 'project_id', 'lot_number', 'block_number', 'subdivision', 'phase', 'lot_area', 'total_contract_price', 'down_payment', 'monthly_amortization', 'term_months', 'months_paid', 'start_date', 'next_due_date', 'status'])]
 class Lot extends Model
 {
     use SoftDeletes, HasFactory;
@@ -25,9 +25,28 @@ class Lot extends Model
         'months_paid'            => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        // Keeps the legacy `subdivision` string in sync with the chosen Project,
+        // so existing filters/reports that query lots.subdivision keep working.
+        static::saving(function (Lot $lot) {
+            if ($lot->project_id && $lot->isDirty('project_id')) {
+                $project = Project::find($lot->project_id);
+                if ($project) {
+                    $lot->subdivision = $project->name;
+                }
+            }
+        });
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function getAmountPaidAttribute(): float

@@ -5,6 +5,7 @@ use App\Http\Controllers\Pages\ClientController;
 use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\LotController;
 use App\Http\Controllers\Pages\PaymentController;
+use App\Http\Controllers\Pages\ProjectController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -38,6 +39,10 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Quick record from the Lot page
     Route::post('lots/{lot}/payments', [PaymentController::class, 'storeForLot'])
         ->name('lots.payments.store')->middleware('can:payments.create');
+
+    Route::resource('projects', ProjectController::class)
+    ->only(['index', 'show'])
+    ->middleware('can:projects.view');
 });
 
 require __DIR__.'/settings.php';
