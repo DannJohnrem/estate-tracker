@@ -39,7 +39,7 @@ const { isCurrentUrl, isCurrentOrParentUrl } = useCurrentUrl();
                 <SidebarMenuItem v-if="!item.items?.length">
                     <SidebarMenuButton
                         as-child
-                        :is-active="isCurrentUrl(item.href)"
+                        :is-active="isCurrentOrParentUrl(item.href)"
                         :tooltip="item.title"
                     >
                         <Link :href="item.href">

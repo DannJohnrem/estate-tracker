@@ -38,6 +38,7 @@ import * as adminUserRoute from '@/routes/admin/users';
 import * as adminRoleRoute from '@/routes/admin/roles';
 import * as adminPermissionRoute from '@/routes/admin/permissions';
 import * as paymentRoute from '@/routes/payments';
+import * as projectRoute from '@/routes/projects';
 import type { NavGroup, NavItem } from '@/types';
 
 // 🔧 Settings ay nasa UserMenuContent.vue (avatar dropdown).
@@ -98,7 +99,7 @@ const navGroups = computed<NavGroup[]>(() => {
                 // 🔧 STATIC MUNA — wala pang routes/controllers
                 {
                     title: 'Projects',
-                    href: '#',
+                    href: projectRoute.index(),
                     icon: Building2,
                     permission: 'projects.view',
                 },

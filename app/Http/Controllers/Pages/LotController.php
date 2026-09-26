@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Project;
 
 class LotController extends Controller
 {
@@ -43,7 +44,7 @@ class LotController extends Controller
                 $q->where('subdivision', $s)
             )
             ->select([
-                'id', 'client_id', 'lot_number', 'block_number',
+                'id', 'client_id', 'project_id', 'lot_number', 'block_number',
                 'subdivision', 'phase', 'lot_area',
                 'total_contract_price', 'down_payment',
                 'monthly_amortization', 'term_months',
@@ -80,8 +81,11 @@ class LotController extends Controller
                 'name' => $c->full_name,
             ]);
 
+        $projects = Project::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('Lots/Create', [
-            'clients'           => $clients,
+            'clients'            => $clients,
+            'projects'           => $projects,
             'selected_client_id' => $request->integer('client_id') ?: null,
             'breadcrumbs'       => [
                 ['title' => 'Dashboard', 'href' => route('dashboard')],
@@ -135,9 +139,12 @@ class LotController extends Controller
                 'name' => $c->full_name,
             ]);
 
+        $projects = Project::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('Lots/Edit', [
             'lot'         => $lot,
             'clients'     => $clients,
+            'projects'    => $projects,
             'breadcrumbs' => [
                 ['title' => 'Dashboard',          'href' => route('dashboard')],
                 ['title' => 'Lots',               'href' => route('lots.index')],
