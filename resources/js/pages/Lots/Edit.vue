@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-// import * as lotRoute from '@/routes/lots';
 import LotForm from '@/components/Lots/LotForm.vue';
 
 type ClientOption = { id: number; name: string };
+type AgentOption = { id: string; name: string };
+type ProjectOption = { id: number; name: string };
 
 type Lot = {
     id: string;
     client_id: number;
+    agent_id: string | null;
+    project_id: number | null;
     lot_number: string;
     block_number: string;
     subdivision: string;
@@ -26,6 +29,8 @@ type Lot = {
 const props = defineProps<{
     lot: Lot;
     clients: ClientOption[];
+    agents: AgentOption[];
+    projects: ProjectOption[];
     breadcrumbs: { title: string; href: string }[];
 }>();
 </script>
@@ -43,6 +48,8 @@ const props = defineProps<{
             mode="edit"
             :lot="lot"
             :clients="clients"
+            :agents="agents"
+            :projects="projects"
         />
     </div>
 </template>

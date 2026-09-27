@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('lot_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('lot_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 12, 2);
             $table->date('paid_at');
             $table->string('method')->nullable();

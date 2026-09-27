@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pages;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLotRequest;
 use App\Http\Requests\UpdateLotRequest;
+use App\Models\Agent;
 use App\Models\Client;
 use App\Models\Lot;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,10 @@ class LotController extends Controller
             ->with([
                 'client' => fn($q) => $q->select([
                     'id', 'first_name', 'middle_name', 'last_name',
-                ])
+                ]),
+                'agent' => fn($q) => $q->select([
+                    'id', 'first_name', 'middle_name', 'last_name',
+                ]),
             ])
             ->when($request->search, fn($q, $s) =>
                 $q->where(fn($q) =>
@@ -44,7 +48,7 @@ class LotController extends Controller
                 $q->where('subdivision', $s)
             )
             ->select([
-                'id', 'client_id', 'project_id', 'lot_number', 'block_number',
+                'id', 'client_id', 'agent_id', 'project_id', 'lot_number', 'block_number',
                 'subdivision', 'phase', 'lot_area',
                 'total_contract_price', 'down_payment',
                 'monthly_amortization', 'term_months',
@@ -81,12 +85,21 @@ class LotController extends Controller
                 'name' => $c->full_name,
             ]);
 
+        $agents = Agent::where('status', 'active')
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'middle_name', 'last_name'])
+            ->map(fn($a) => [
+                'id'   => $a->id,
+                'name' => $a->full_name,
+            ]);
+
         $projects = Project::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Lots/Create', [
             'clients'            => $clients,
+            'agents'             => $agents,
             'projects'           => $projects,
-            'selected_client_id' => $request->integer('client_id') ?: null,
+            'selected_client_id' => $request->query('client_id') ?: null,
             'breadcrumbs'       => [
                 ['title' => 'Dashboard', 'href' => route('dashboard')],
                 ['title' => 'Lots',      'href' => route('lots.index')],
@@ -113,6 +126,7 @@ class LotController extends Controller
     {
         $lot->load([
             'client',
+            'agent',
             'payments' => fn ($q) => $q->orderByDesc('paid_at'),
         ]);
 
@@ -139,11 +153,20 @@ class LotController extends Controller
                 'name' => $c->full_name,
             ]);
 
+        $agents = Agent::where('status', 'active')
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'middle_name', 'last_name'])
+            ->map(fn($a) => [
+                'id'   => $a->id,
+                'name' => $a->full_name,
+            ]);
+
         $projects = Project::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Lots/Edit', [
             'lot'         => $lot,
             'clients'     => $clients,
+            'agents'      => $agents,
             'projects'    => $projects,
             'breadcrumbs' => [
                 ['title' => 'Dashboard',          'href' => route('dashboard')],
@@ -161,7 +184,7 @@ class LotController extends Controller
     {
         $lot->update($request->validated());
 
-        return to_route('clients.show', $lot->client_id)
+        return to_route('lots.show', $lot)
             ->with('success', 'Lot updated successfully.');
     }
 

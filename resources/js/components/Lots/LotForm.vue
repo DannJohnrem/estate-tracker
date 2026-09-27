@@ -8,11 +8,22 @@ type ClientOption = {
     name: string;
 };
 
+type AgentOption = {
+    id: string;
+    name: string;
+};
+
+type ProjectOption = {
+    id: string;
+    name: string;
+};
+
 type LotFormData = {
-    client_id: number | null;
+    client_id: string | null;
+    agent_id: string | null;
+    project_id: string | null;
     lot_number: string;
     block_number: string;
-    subdivision: string;
     phase: string;
     lot_area: string;
     total_contract_price: string;
@@ -27,17 +38,27 @@ type LotFormData = {
 
 const props = defineProps<{
     clients: ClientOption[];
+    agents: AgentOption[];
+    projects: ProjectOption[];
     mode: 'create' | 'edit';
-    lot?: LotFormData & { id: number };
+    lot?: LotFormData & { id: number; subdivision?: string };
     selectedClientId?: number | null;
 }>();
+
+// Laravel sends date-cast fields as full ISO timestamps (e.g. "2026-06-29T00:00:00.000000Z"),
+// but <input type="date"> requires plain "yyyy-MM-dd" — trim it down here.
+const toDateInputValue = (value: string | null | undefined) => {
+    if (!value) return '';
+    return value.slice(0, 10);
+};
 
 // Form
 const form = useForm<LotFormData>({
     client_id:            props.lot?.client_id            ?? props.selectedClientId ?? null,
+    agent_id:              props.lot?.agent_id              ?? null,
+    project_id:           props.lot?.project_id           ?? null,
     lot_number:           props.lot?.lot_number           ?? '',
     block_number:         props.lot?.block_number         ?? '',
-    subdivision:          props.lot?.subdivision          ?? '',
     phase:                props.lot?.phase                ?? '',
     lot_area:             props.lot?.lot_area             ?? '',
     total_contract_price: props.lot?.total_contract_price ?? '',
@@ -45,17 +66,17 @@ const form = useForm<LotFormData>({
     monthly_amortization: props.lot?.monthly_amortization ?? '',
     term_months:          props.lot?.term_months          ?? '',
     months_paid:          props.lot?.months_paid          ?? '0',
-    start_date:           props.lot?.start_date           ?? '',
-    next_due_date:        props.lot?.next_due_date        ?? '',
+    start_date:           toDateInputValue(props.lot?.start_date),
+    next_due_date:        toDateInputValue(props.lot?.next_due_date),
     status:               props.lot?.status               ?? 'active',
 });
 
 // Submit handler
 const submit = () => {
     if (props.mode === 'create') {
-        form.post(lotRoute.store(), { preserveScroll: true });
+        form.post(lotRoute.store().url, { preserveScroll: true });
     } else {
-        form.put(lotRoute.update({ lot: props.lot!.id }), { preserveScroll: true });
+        form.put(lotRoute.update({ lot: props.lot!.id }).url, { preserveScroll: true });
     }
 };
 </script>
@@ -72,7 +93,7 @@ const submit = () => {
             <div class="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
 
                 <!-- Client -->
-                <div class="md:col-span-2">
+                <div>
                     <label class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">
                         Client <span class="text-red-500">*</span>
                     </label>
@@ -91,6 +112,46 @@ const submit = () => {
                     </p>
                 </div>
 
+                <!-- Agent -->
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                        Agent <span class="text-gray-400">(optional)</span>
+                    </label>
+                    <select
+                        v-model="form.agent_id"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                        :class="{ 'border-red-400': form.errors.agent_id }"
+                    >
+                        <option :value="null">No agent</option>
+                        <option v-for="agent in agents" :key="agent.id" :value="agent.id">
+                            {{ agent.name }}
+                        </option>
+                    </select>
+                    <p v-if="form.errors.agent_id" class="mt-1 text-xs text-red-500">
+                        {{ form.errors.agent_id }}
+                    </p>
+                </div>
+
+                <!-- Project / Subdivision -->
+                <div class="md:col-span-2">
+                    <label class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                        Project / Subdivision <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        v-model="form.project_id"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                        :class="{ 'border-red-400': form.errors.project_id }"
+                    >
+                        <option :value="null">Select project</option>
+                        <option v-for="project in projects" :key="project.id" :value="project.id">
+                            {{ project.name }}
+                        </option>
+                    </select>
+                    <p v-if="form.errors.project_id" class="mt-1 text-xs text-red-500">
+                        {{ form.errors.project_id }}
+                    </p>
+                </div>
+
                 <!-- Block Number -->
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -102,7 +163,11 @@ const submit = () => {
                         placeholder="e.g. Block 3"
                         maxlength="50"
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+                        :class="{ 'border-red-400': form.errors.block_number }"
                     />
+                    <p v-if="form.errors.block_number" class="mt-1 text-xs text-red-500">
+                        {{ form.errors.block_number }}
+                    </p>
                 </div>
 
                 <!-- Lot Number -->
@@ -123,24 +188,6 @@ const submit = () => {
                     </p>
                 </div>
 
-                <!-- Subdivision -->
-                <div>
-                    <label class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">
-                        Subdivision <span class="text-red-500">*</span>
-                    </label>
-                    <input
-                        v-model="form.subdivision"
-                        type="text"
-                        placeholder="e.g. Sampaguita Homes"
-                        maxlength="150"
-                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
-                        :class="{ 'border-red-400': form.errors.subdivision }"
-                    />
-                    <p v-if="form.errors.subdivision" class="mt-1 text-xs text-red-500">
-                        {{ form.errors.subdivision }}
-                    </p>
-                </div>
-
                 <!-- Phase -->
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -152,7 +199,11 @@ const submit = () => {
                         placeholder="e.g. Phase 1"
                         maxlength="50"
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+                        :class="{ 'border-red-400': form.errors.phase }"
                     />
+                    <p v-if="form.errors.phase" class="mt-1 text-xs text-red-500">
+                        {{ form.errors.phase }}
+                    </p>
                 </div>
 
                 <!-- Lot Area -->
@@ -336,7 +387,7 @@ const submit = () => {
         <!-- ── Form Actions ── -->
         <div class="flex items-center justify-end gap-3">
             <Link
-                :href="lotRoute.index()"
+                :href="lotRoute.index().url"
                 class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-300 dark:hover:bg-zinc-800"
             >
                 Cancel

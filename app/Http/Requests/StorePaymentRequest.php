@@ -32,7 +32,7 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'lot_id' => ['required', 'integer', Rule::exists('lots', 'id')->whereNull('deleted_at')],
+            'lot_id' => ['required', 'string', 'uuid', Rule::exists('lots', 'id')->whereNull('deleted_at')],
             'amount' => ['required', 'numeric', 'min:1', 'max:99999999.99'],
             'paid_at' => ['required', 'date'],
             'method' => ['nullable', Rule::in(Payment::METHODS)],

@@ -15,9 +15,13 @@ defineOptions({
 });
 
 type ClientOption = { id: number; name: string };
+type AgentOption = { id: string; name: string };
+type ProjectOption = { id: number; name: string };
 
 defineProps<{
     clients: ClientOption[];
+    agents: AgentOption[];
+    projects: ProjectOption[];
     selected_client_id: number | null;
 }>();
 </script>
@@ -32,6 +36,8 @@ defineProps<{
         <LotForm
             mode="create"
             :clients="clients"
+            :agents="agents"
+            :projects="projects"
             :selected-client-id="selected_client_id"
         />
     </div>

@@ -89,14 +89,13 @@ class PaymentController extends Controller
 
         return Inertia::render('Payments/Create', [
             'lots' => $lots,
-            // e.g. /payments/create?lot_id=5
-            'selected_lot_id' => $request->integer('lot_id') ?: null,
+            'selected_lot_id' => $request->query('lot_id') ?: null, // e.g. /payments/create?lot_id=<uuid>
         ]);
     }
 
     public function store(StorePaymentRequest $request, RecordPayment $recordPayment): RedirectResponse
     {
-        $lot = Lot::findOrFail($request->integer('lot_id'));
+        $lot = Lot::findOrFail($request->input('lot_id'));
 
         $payment = $recordPayment->handle(
             $lot,

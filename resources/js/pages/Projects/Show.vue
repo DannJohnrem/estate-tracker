@@ -9,8 +9,8 @@ import Pagination from '@/components/Pagination.vue';
 type Client = { id: number; first_name: string; middle_name: string | null; last_name: string };
 
 type Lot = {
-    id: number;
-    client_id: number;
+    id: string;
+    client_id: string;
     lot_number: string;
     block_number: string | null;
     phase: string | null;
@@ -30,7 +30,7 @@ type PaginatedLots = {
 };
 
 const props = defineProps<{
-    project: { id: number; name: string; location: string | null; status: string };
+    project: { id: string; name: string; location: string | null; status: string };
     stats: {
         total_lots: number;
         active_lots: number;

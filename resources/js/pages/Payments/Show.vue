@@ -8,7 +8,7 @@ import { PAYMENT_STATUS, methodLabel } from '@/lib/payments';
 
 // ── Types ──
 type Client = {
-    id: number;
+    id: string;
     first_name: string;
     middle_name: string | null;
     last_name: string;
@@ -30,11 +30,11 @@ type Payment = {
     void_reason: string | null;
     created_at: string;
     // Loaded relations serialize under these keys (they replace the raw ids)
-    recorded_by: { id: number; name: string } | null;
-    voided_by: { id: number; name: string } | null;
+    recorded_by: { id: string; name: string } | null;
+    voided_by: { id: string; name: string } | null;
     lot: {
-        id: number;
-        client_id: number;
+        id: string;
+        client_id: string;
         lot_number: string;
         block_number: string | null;
         subdivision: string;

@@ -16,7 +16,7 @@ type Agent = {
 };
 
 type Lot = {
-    id: number;
+    id: string;
     lot_number: string;
     block_number: string | null;
     subdivision: string;
@@ -34,7 +34,7 @@ type Lot = {
 };
 
 type Client = {
-    id: number;
+    id: string;
     first_name: string;
     middle_name: string | null;
     last_name: string;

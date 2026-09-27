@@ -9,7 +9,7 @@ import { PAYMENT_METHODS, PAYMENT_STATUS, methodLabel, todayISO } from '@/lib/pa
 
 // ── Types ──
 type Client = {
-    id: number;
+    id: string;
     first_name: string;
     middle_name: string | null;
     last_name: string;
@@ -39,8 +39,8 @@ type Payment = {
 };
 
 type Lot = {
-    id: number;
-    client_id: number;
+    id: string;
+    client_id: string;
     agent_id: string | null;
     lot_number: string;
     block_number: string | null;

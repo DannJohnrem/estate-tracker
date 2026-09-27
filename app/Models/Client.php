@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable(['first_name', 'middle_name', 'last_name', 'email', 'phone_number', 'address', 'valid_id_type', 'valid_id_number'])]
 class Client extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasUuids, SoftDeletes, HasFactory;
 
     public function lots(): HasMany
     {

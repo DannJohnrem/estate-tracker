@@ -12,15 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('lots', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-
+            $table->uuid('id')->primary();
+            $table->foreignUuid('client_id')->constrained()->cascadeOnDelete();
             $table->string('lot_number');
             $table->string('block_number')->nullable();
             $table->string('subdivision');
             $table->string('phase')->nullable();
             $table->decimal('lot_area', 8, 2);
-
             $table->decimal('total_contract_price', 12, 2);
             $table->decimal('down_payment', 12, 2)->default(0);
             $table->decimal('monthly_amortization', 10, 2);
@@ -28,13 +26,10 @@ return new class extends Migration
             $table->integer('months_paid')->default(0);
             $table->date('start_date');
             $table->date('next_due_date')->nullable();
-
             $table->enum('status', ['active', 'delinquent', 'fully_paid', 'cancelled'])
                 ->default('active');
-
             $table->timestamps();
             $table->softDeletes();
-
             $table->index('client_id');
             $table->index('status');
             $table->index('next_due_date');
