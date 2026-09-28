@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import LotForm from '@/components/Lots/LotForm.vue';
+import LotForm from '@/components/lots/LotForm.vue';
 
-type ClientOption = { id: number; name: string };
+type ClientOption = { id: string; name: string };
 type AgentOption = { id: string; name: string };
-type ProjectOption = { id: number; name: string };
+type ProjectOption = { id: string; name: string };
 
 type Lot = {
     id: string;
-    client_id: number;
+    client_id: string;
     agent_id: string | null;
-    project_id: number | null;
+    project_id: string | null;
     lot_number: string;
     block_number: string;
     subdivision: string;

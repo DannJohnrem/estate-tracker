@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import ClientForm from '@/components/Clients/ClientForm.vue';
+import ClientForm from '@/components/clients/ClientForm.vue';
 import { dashboard } from '@/routes';
 import * as clientRoute from '@/routes/clients';
 

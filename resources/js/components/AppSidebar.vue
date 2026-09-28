@@ -40,6 +40,7 @@ import * as adminPermissionRoute from '@/routes/admin/permissions';
 import * as paymentRoute from '@/routes/payments';
 import * as projectRoute from '@/routes/projects';
 import * as agentRoute from '@/routes/agents';
+import * as reservationRoute from '@/routes/reservations';
 import type { NavGroup, NavItem } from '@/types';
 
 // 🔧 Settings ay nasa UserMenuContent.vue (avatar dropdown).
@@ -112,7 +113,7 @@ const navGroups = computed<NavGroup[]>(() => {
                 },
                 {
                     title: 'Reservations',
-                    href: '#',
+                    href: reservationRoute.index(),
                     icon: CalendarClock,
                     permission: 'reservations.view',
                 },

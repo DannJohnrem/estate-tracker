@@ -39,6 +39,9 @@ class StoreLotRequest extends FormRequest
             'start_date'            => 'required|date',
             'next_due_date'         => 'nullable|date',
             'status'                => 'required|in:active,delinquent,fully_paid,cancelled',
+
+            // Set only when the lot is created from a reservation's "Confirm & Create Lot" button
+            'reservation_id'        => 'nullable|uuid|exists:reservations,id',
         ];
     }
 }
