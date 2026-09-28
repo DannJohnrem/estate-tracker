@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import AgentForm from '@/components/Agents/AgentForm.vue';
+import AgentForm from '@/components/agents/AgentForm.vue';
 import { dashboard } from '@/routes';
 import * as agentRoute from '@/routes/agents';
 

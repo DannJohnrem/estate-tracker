@@ -23,7 +23,7 @@ class UpdateLotRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id'             => 'required|uuid|exists:clients,id',,
+            'client_id'             => 'required|uuid|exists:clients,id',
             'agent_id'              => 'nullable|uuid|exists:agents,id',
             'project_id'            => 'required|uuid|exists:projects,id',
             'lot_number'            => 'required|string|max:50',

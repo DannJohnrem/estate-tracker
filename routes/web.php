@@ -7,6 +7,7 @@ use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\LotController;
 use App\Http\Controllers\Pages\PaymentController;
 use App\Http\Controllers\Pages\ProjectController;
+use App\Http\Controllers\Pages\ReservationController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -40,6 +41,24 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Quick record from the Lot page
     Route::post('lots/{lot}/payments', [PaymentController::class, 'storeForLot'])
         ->name('lots.payments.store')->middleware('can:payments.create');
+
+    // Reservations module (reservations/create must come before reservations/{reservation})
+    Route::middleware(['permission:reservations.view'])->group(function () {
+        Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
+    });
+    Route::middleware(['permission:reservations.create'])->group(function () {
+        Route::get('/reservations/create', [ReservationController::class, 'create'])->name('reservations.create');
+        Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
+    });
+    Route::middleware(['permission:reservations.edit'])->group(function () {
+        Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
+        Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
+        Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+    });
+    Route::middleware(['permission:reservations.view'])->group(function () {
+        Route::get('/reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
+
+    });
 
     Route::resource('projects', ProjectController::class)
     ->only(['index', 'show'])

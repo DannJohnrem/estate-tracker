@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useForm, Link } from '@inertiajs/vue3';
 import * as lotRoute from '@/routes/lots';
+import * as reservationRoute from '@/routes/reservations';
 
 // Types
 type ClientOption = {
-    id: number;
+    id: string;
     name: string;
 };
 
@@ -34,6 +36,19 @@ type LotFormData = {
     start_date: string;
     next_due_date: string;
     status: string;
+    // Not saved on the lot: tells the controller which reservation to mark as confirmed
+    reservation_id: string | null;
+};
+
+type ReservationPrefill = {
+    id: string;
+    client_id: string;
+    agent_id: string | null;
+    project_id: string | null;
+    lot_number: string;
+    block_number: string | null;
+    phase: string | null;
+    lot_area: number | null;
 };
 
 const props = defineProps<{
@@ -41,8 +56,9 @@ const props = defineProps<{
     agents: AgentOption[];
     projects: ProjectOption[];
     mode: 'create' | 'edit';
-    lot?: LotFormData & { id: number; subdivision?: string };
-    selectedClientId?: number | null;
+    lot?: Omit<LotFormData, 'reservation_id'> & { id: string; subdivision?: string };
+    selectedClientId?: string | null;
+    reservation?: ReservationPrefill | null;
 }>();
 
 // Laravel sends date-cast fields as full ISO timestamps (e.g. "2026-06-29T00:00:00.000000Z"),
@@ -54,13 +70,13 @@ const toDateInputValue = (value: string | null | undefined) => {
 
 // Form
 const form = useForm<LotFormData>({
-    client_id:            props.lot?.client_id            ?? props.selectedClientId ?? null,
-    agent_id:              props.lot?.agent_id              ?? null,
-    project_id:           props.lot?.project_id           ?? null,
-    lot_number:           props.lot?.lot_number           ?? '',
-    block_number:         props.lot?.block_number         ?? '',
-    phase:                props.lot?.phase                ?? '',
-    lot_area:             props.lot?.lot_area             ?? '',
+    client_id:            props.lot?.client_id            ?? props.reservation?.client_id   ?? props.selectedClientId ?? null,
+    agent_id:             props.lot?.agent_id             ?? props.reservation?.agent_id    ?? null,
+    project_id:           props.lot?.project_id           ?? props.reservation?.project_id  ?? null,
+    lot_number:           props.lot?.lot_number           ?? props.reservation?.lot_number  ?? '',
+    block_number:         props.lot?.block_number         ?? props.reservation?.block_number ?? '',
+    phase:                props.lot?.phase                ?? props.reservation?.phase       ?? '',
+    lot_area:             props.lot?.lot_area             ?? props.reservation?.lot_area?.toString() ?? '',
     total_contract_price: props.lot?.total_contract_price ?? '',
     down_payment:         props.lot?.down_payment         ?? '',
     monthly_amortization: props.lot?.monthly_amortization ?? '',
@@ -69,7 +85,15 @@ const form = useForm<LotFormData>({
     start_date:           toDateInputValue(props.lot?.start_date),
     next_due_date:        toDateInputValue(props.lot?.next_due_date),
     status:               props.lot?.status               ?? 'active',
+    reservation_id:       props.reservation?.id           ?? null,
 });
+
+// Cancel goes back to the reservation when creating a lot from one
+const cancelHref = computed(() =>
+    props.reservation
+        ? reservationRoute.show({ reservation: props.reservation.id }).url
+        : lotRoute.index().url,
+);
 
 // Submit handler
 const submit = () => {
@@ -387,7 +411,7 @@ const submit = () => {
         <!-- ── Form Actions ── -->
         <div class="flex items-center justify-end gap-3">
             <Link
-                :href="lotRoute.index().url"
+                :href="cancelHref"
                 class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-300 dark:hover:bg-zinc-800"
             >
                 Cancel
@@ -401,13 +425,15 @@ const submit = () => {
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                {{ form.processing ? 'Saving...' : mode === 'create' ? 'Add Lot' : 'Save Changes' }}
+                {{ form.processing
+                    ? 'Saving...'
+                    : mode === 'edit'
+                        ? 'Save Changes'
+                        : reservation
+                            ? 'Confirm & Save Lot'
+                            : 'Add Lot' }}
             </button>
         </div>
 
     </form>
 </template>
-
-<style scoped>
-
-</style>

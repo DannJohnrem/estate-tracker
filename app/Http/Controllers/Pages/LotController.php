@@ -8,11 +8,13 @@ use App\Http\Requests\UpdateLotRequest;
 use App\Models\Agent;
 use App\Models\Client;
 use App\Models\Lot;
+use App\Models\Project;
+use App\Models\Reservation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\Project;
 
 class LotController extends Controller
 {
@@ -75,8 +77,15 @@ class LotController extends Controller
      */
     public function create(Request $request): Response
     {
+        // Coming from a reservation's "Confirm & Create Lot" button
+        // e.g. /lots/create?reservation_id=<uuid>
+        $reservation = null;
+        if ($reservationId = $request->query('reservation_id')) {
+            $reservation = Reservation::where('status', 'pending')->findOrFail($reservationId);
+        }
+
         // Accept optional client_id from query string
-        // e.g. /lots/create?client_id=5 (from Client Show page)
+        // e.g. /lots/create?client_id=<uuid> (from Client Show page)
         $clients = Client::orderBy('last_name')
             ->select(['id', 'first_name', 'middle_name', 'last_name'])
             ->get()
@@ -99,8 +108,12 @@ class LotController extends Controller
             'clients'            => $clients,
             'agents'             => $agents,
             'projects'           => $projects,
-            'selected_client_id' => $request->query('client_id') ?: null,
-            'breadcrumbs'       => [
+            'selected_client_id' => $reservation?->client_id ?? ($request->query('client_id') ?: null),
+            'reservation'        => $reservation?->only([
+                'id', 'client_id', 'agent_id', 'project_id',
+                'lot_number', 'block_number', 'subdivision', 'phase', 'lot_area',
+            ]),
+            'breadcrumbs'        => [
                 ['title' => 'Dashboard', 'href' => route('dashboard')],
                 ['title' => 'Lots',      'href' => route('lots.index')],
                 ['title' => 'Add Lot',   'href' => '#'],
@@ -113,7 +126,30 @@ class LotController extends Controller
      */
     public function store(StoreLotRequest $request): RedirectResponse
     {
-        $lot = Lot::create($request->validated());
+        $data = $request->safe()->except('reservation_id');
+        $reservationId = $request->input('reservation_id');
+
+        // One transaction: if the reservation update fails, the Lot is not saved either
+        $lot = DB::transaction(function () use ($data, $reservationId) {
+            $lot = Lot::create($data);
+
+            if ($reservationId) {
+                Reservation::where('status', 'pending')
+                    ->lockForUpdate()
+                    ->findOrFail($reservationId)
+                    ->update([
+                        'status'           => 'confirmed',
+                        'converted_lot_id' => $lot->id,
+                    ]);
+            }
+
+            return $lot;
+        });
+
+        if ($reservationId) {
+            return to_route('lots.show', $lot)
+                ->with('success', 'Reservation confirmed and lot created.');
+        }
 
         return to_route('clients.show', $lot->client_id)
             ->with('success', 'Lot added successfully.');
