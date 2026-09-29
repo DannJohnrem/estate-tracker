@@ -41,6 +41,7 @@ import * as paymentRoute from '@/routes/payments';
 import * as projectRoute from '@/routes/projects';
 import * as agentRoute from '@/routes/agents';
 import * as reservationRoute from '@/routes/reservations';
+import * as documentRoute from '@/routes/documents';
 import type { NavGroup, NavItem } from '@/types';
 
 // 🔧 Settings ay nasa UserMenuContent.vue (avatar dropdown).
@@ -130,7 +131,7 @@ const navGroups = computed<NavGroup[]>(() => {
             items: [
                 {
                     title: 'Documents',
-                    href: '#',
+                    href: documentRoute.index(),
                     icon: FileText,
                     permission: 'documents.view',
                 },

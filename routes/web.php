@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Pages\AgentController;
 use App\Http\Controllers\Pages\ClientController;
 use App\Http\Controllers\Pages\DashboardController;
+use App\Http\Controllers\Pages\DocumentController;
 use App\Http\Controllers\Pages\LotController;
 use App\Http\Controllers\Pages\PaymentController;
 use App\Http\Controllers\Pages\ProjectController;
@@ -21,6 +22,19 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'approved'])->group(function () {
+
+// TEMPORARY DEBUG - remove after checking
+// Route::get('/_phpcheck', fn () => [
+//     'php_version' => PHP_VERSION,
+//     'ini_file' => php_ini_loaded_file(),
+//     'file_uploads' => ini_get('file_uploads'),
+//     'upload_max_filesize' => ini_get('upload_max_filesize'),
+//     'post_max_size' => ini_get('post_max_size'),
+//     'upload_tmp_dir' => ini_get('upload_tmp_dir'),
+//     'sys_temp_dir' => sys_get_temp_dir(),
+//     'temp_writable' => is_writable(sys_get_temp_dir()),
+// ]);
+
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('clients', ClientController::class);
@@ -81,6 +95,28 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     });
     Route::middleware(['permission:agents.delete'])->group(function () {
         Route::delete('/agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
+    });
+
+    // Documents module (documents/create must come before documents/{document})
+    Route::middleware(['permission:documents.view'])->group(function () {
+        Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+    });
+    Route::middleware(['permission:documents.create'])->group(function () {
+        Route::get('/documents/create', [DocumentController::class, 'create'])->name('documents.create');
+        Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
+    });
+    Route::middleware(['permission:documents.edit'])->group(function () {
+        Route::get('/documents/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit')->whereUuid('document');
+        // POST with _method=put is used because PHP can't read multipart data on PUT
+        Route::put('/documents/{document}', [DocumentController::class, 'update'])->name('documents.update')->whereUuid('document');
+    });
+    Route::middleware(['permission:documents.view'])->group(function () {
+        Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show')->whereUuid('document');
+        // Streams the PDF inline (viewer iframe) or as a download with ?download=1
+        Route::get('/documents/{document}/file', [DocumentController::class, 'file'])->name('documents.file')->whereUuid('document');
+    });
+    Route::middleware(['permission:documents.delete'])->group(function () {
+        Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy')->whereUuid('document');
     });
 });
 
